@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solidification Microstructure Lab</title>
+<style>
+/* Layout: header, then a "Model" panel, then three columns of white rounded panels on a soft grey page. */
+:root {
+  --bg: #f5f5f7;
+  --panel: #ffffff;
+  --soft: #f0f0f3;
+  --track: #e9e9ee;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #e3e3e8;
+  --accent: #0071e3;
+  --accent-ink: #ffffff;
+  --hot: #d9480f;
+  --good: #248a3d; --warn: #b25000; --bad: #d70015;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --panel: #1c1c1e; --soft: #2c2c2e; --track: #2c2c2e; --ink: #f5f5f7; --muted: #98989d; --line: #38383a;
+    --accent: #0a84ff; --accent-ink: #ffffff; --hot: #ff8a4c; --good: #30d158; --warn: #ff9f0a; --bad: #ff453a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --panel: #1c1c1e; --soft: #2c2c2e; --track: #2c2c2e; --ink: #f5f5f7; --muted: #98989d; --line: #38383a;
+  --accent: #0a84ff; --accent-ink: #ffffff; --hot: #ff8a4c; --good: #30d158; --warn: #ff9f0a; --bad: #ff453a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 13.5px/1.45 var(--font-body); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-size: 15px; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1680px; margin: 0 auto; padding: 0 20px 28px; }
+
+header.hero { padding: 22px 4px 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.logo { width: 88px; height: 88px; flex: none; }
+header.hero h1 { font-size: 30px; letter-spacing: -0.022em; line-height: 1.1; }
+header.hero p { color: var(--muted); font-size: 15px; margin-top: 6px; max-width: 70ch; }
+
+.modelbar { background: var(--panel); border-radius: var(--r); padding: 16px 20px; display: grid; grid-template-columns: 76px 1fr; gap: 12px 12px; align-items: center; margin-bottom: 14px; }
+.mb-label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.mb-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+#scenTabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { border: 0; background: var(--soft); padding: 6px 14px; cursor: pointer; border-radius: 980px; font-size: 13px; }
+.tab:hover { background: var(--track); }
+.tab[aria-current="true"] { background: var(--ink); color: var(--panel); font-weight: 500; }
+
+.app { display: grid; grid-template-columns: 300px minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+.left, .right, .stage { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 1240px) { .app { grid-template-columns: 290px minmax(0, 1fr); } .right { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); } }
+@media (max-width: 820px) { .app { grid-template-columns: 1fr; } .wrap { padding: 0 12px 20px; } header.hero h1 { font-size: 24px; } .modelbar { grid-template-columns: 1fr; } }
+
+.card { background: var(--panel); border-radius: var(--r); }
+details.card > summary { list-style: none; cursor: pointer; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); margin-top: -4px; transition: transform .15s; }
+details.card:not([open]) > summary::after { transform: rotate(-45deg); margin-top: 0; }
+.body { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 11px; }
+.sub { font-size: 12.5px; font-weight: 600; margin-top: 6px; }
+.hint { font-size: 12px; color: var(--muted); }
+
+.ctl { display: grid; grid-template-columns: 1fr 78px; gap: 3px 8px; align-items: center; }
+.ctl label { font-size: 13px; }
+.ctl label small { color: var(--muted); font-size: 11.5px; }
+.ctl input[type=number], .field { width: 100%; padding: 3px 7px; border: 0; border-radius: 6px; background: var(--soft); font-family: var(--font-mono); font-size: 12px; text-align: right; }
+.ctl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 0; height: 18px; }
+select { padding: 5px 8px; border: 0; border-radius: 7px; background: var(--soft); max-width: 100%; }
+.seg { display: flex; background: var(--track); border-radius: 9px; padding: 2px; gap: 2px; }
+.seg button { flex: 1; border: 0; background: none; padding: 5px 10px; cursor: pointer; font-size: 13px; border-radius: 7px; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--panel); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.04); }
+.seg.big button { padding: 7px 22px; font-size: 14px; }
+.derived { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; font-size: 12.5px; }
+.derived > span { padding: 5px 0; border-bottom: 1px solid var(--line); }
+.derived > span:nth-child(even) { font-family: var(--font-mono); font-size: 12px; text-align: right; }
+.derived .full { grid-column: 1 / -1; border-bottom: 0; text-align: left !important; font-family: var(--font-body) !important; padding-top: 8px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.check input { accent-color: var(--accent); }
+
+.btn { border: 0; background: var(--soft); border-radius: 980px; padding: 6px 15px; cursor: pointer; }
+.btn:hover { background: var(--track); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); min-width: 76px; font-weight: 500; }
+.btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn.small { padding: 4px 12px; font-size: 12.5px; }
+
+.scenhead { padding: 18px 20px 0; }
+.scenhead h2 { font-size: 19px; letter-spacing: -0.015em; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 12px 20px; }
+.toolbar .grow, .erow .grow { flex: 1; }
+.status { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.status.run { color: var(--ink); }
+.status.done { color: var(--good); }
+.viewport { padding: 0 20px 16px; }
+.cvwrap { position: relative; background: #0b0f12; border-radius: 10px; overflow: hidden; }
+#cv { display: block; width: 100%; height: auto; cursor: crosshair; }
+.cvwrap.pf { display: flex; justify-content: center; }
+#pfgl, #pf2d { display: block; width: auto; height: auto; max-width: 100%; max-height: min(74vh, 780px); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-top: 10px; font-size: 12px; color: var(--muted); align-items: center; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+.legend .bar { width: 130px; height: 9px; border-radius: 5px; display: inline-block; vertical-align: -1px; margin: 0 5px; }
+
+.editor, .results { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.tool { display: flex; align-items: center; gap: 7px; border: 0; background: var(--soft); border-radius: 980px; padding: 5px 12px 5px 9px; cursor: pointer; font-size: 12.5px; }
+.tool i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(128,128,128,.45); }
+.tool[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+.erow { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; }
+.erow input[type=range] { width: 110px; accent-color: var(--accent); vertical-align: middle; }
+.seeds { display: flex; flex-direction: column; gap: 5px; }
+.seedchip { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.seedchip input { width: 58px; }
+.seedchip i { border-radius: 50% !important; }
+
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 0 30px; }
+.chip { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; flex-wrap: wrap; }
+.chip b { font-family: var(--font-mono); font-weight: 500; font-size: 12.5px; }
+.chip.good { color: var(--good); } .chip.warn { color: var(--warn); } .chip.bad { color: var(--bad); }
+.summary { max-width: 75ch; color: var(--muted); }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; }
+
+.rcard { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.rcard canvas { width: 100%; height: auto; display: block; touch-action: none; }
+#pd { cursor: ew-resize; touch-action: pan-y; }
+.props { display: grid; grid-template-columns: 1fr; font-size: 12.5px; }
+.props div { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px solid var(--line); padding: 5px 0; }
+.props span:last-child { font-family: var(--font-mono); font-size: 12px; }
+.about ul { margin: 0; padding-left: 17px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+
+footer { margin-top: 14px; }
+footer .body p { font-size: 13px; }
+footer h3 { font-size: 13px; margin-bottom: 6px; }
+.about-grid { display: grid; gap: 10px 44px; }
+.about-grid.two { grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); }
+.about-grid.three { grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+.about-grid > div { display: flex; flex-direction: column; gap: 8px; }
+.about-grid.notes { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 6px; }
+.about-grid.notes p { color: var(--muted); }
+footer a { color: var(--accent); }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+.modal.open { display: flex; }
+.modal .box { background: var(--panel); border-radius: var(--r); max-width: min(900px, 100%); max-height: 100%; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.modal textarea { width: 100%; min-height: 120px; font-family: var(--font-mono); font-size: 11.5px; padding: 10px; border: 0; border-radius: 8px; background: var(--soft); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* phones and small tablets: specimen first, larger touch targets, 16px inputs (stops iOS zooming on focus) */
+@media (max-width: 820px) {
+  .stage { order: -1; }
+  header.hero { padding: 16px 2px 12px; }
+  header.hero p { font-size: 13px; }
+  .logo { width: 60px; height: 60px; }
+  .modelbar { padding: 14px; gap: 6px 12px; }
+  .seg.big { width: 100%; }
+  .seg.big button { padding: 9px 10px; }
+  .tab { padding: 9px 15px; }
+  .btn { padding: 9px 16px; } .btn.small { padding: 7px 13px; }
+  .seg button { padding: 8px 10px; }
+  .tool { padding: 8px 13px 8px 10px; }
+  .ctl { grid-template-columns: 1fr 92px; }
+  .ctl input[type=number], .field, select, .modal textarea { font-size: 16px; }
+  .ctl input[type=range], .erow input[type=range] { height: 30px; }
+  .scenhead { padding: 14px 14px 0; } .toolbar { padding: 10px 14px; } .viewport { padding: 0 14px 14px; }
+  .editor, .results, .rcard { padding: 14px; }
+  details.card > summary { padding: 14px; } .body { padding: 0 14px 14px; }
+  .status { flex-basis: 100%; }
+  .chip { display: block; } .chip b { margin-left: 4px; }
+  #pfgl, #pf2d { max-height: 70vh; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div>
+    <h1>Solidification Microstructure Lab</h1>
+    <p>2109519 Solidification of Casting · Faculty of Engineering, Chulalongkorn University</p>
+  </div>
+  <img class="logo" alt="Course logo: molten metal poured from a ladle into a mould" width="88" height="88" src="data:image/png;base64,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">
+</header>
+
+<section class="modelbar" aria-label="Model">
+  <span class="mb-label">Model</span>
+  <div class="mb-row"><div class="seg big" id="modelSeg" role="group" aria-label="Model scale"></div><span class="hint" id="modelHint"></span></div>
+  <span class="mb-label">Scenario</span>
+  <nav id="scenTabs" aria-label="Scenarios"></nav>
+  <select id="preset" hidden aria-hidden="true" tabindex="-1"></select>
+</section>
+
+<main class="app">
+  <!-- ============ LEFT: process controls ============ -->
+  <aside class="left">
+    <details class="card" open id="pfCard" style="display:none">
+      <summary id="pfCardTitle">Dendrite model</summary>
+      <div class="body" id="pfCtl"></div>
+    </details>
+
+    <details class="card" open id="procCard">
+      <summary>Process</summary>
+      <div class="body">
+        <div class="seg" role="group" aria-label="Process type">
+          <button id="modeCast" type="button">Casting in a mould</button>
+          <button id="modeDS" type="button">Directional</button>
+        </div>
+        <p class="hint" id="modeHint"></p>
+        <div id="castCtl" class="body" style="padding:0"></div>
+        <div id="dsCtl" class="body" style="padding:0">
+          <div id="dsSliders" class="body" style="padding:0"></div>
+          <div class="derived" id="dsDerived" aria-live="polite"></div>
+          <div class="sub">Growth direction</div>
+          <div class="seg" role="group" aria-label="Growth direction">
+            <button id="dirUp" type="button">Upward</button>
+            <button id="dirDown" type="button">Downward</button>
+          </div>
+          <div id="dsSliders2" class="body" style="padding:0"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="card" open id="nucCard">
+      <summary>Nucleation &amp; grain refiner</summary>
+      <div class="body">
+        <div class="sub">Untreated melt (native nuclei)</div>
+        <div id="natCtl" class="body" style="padding:0"></div>
+        <div class="sub">Grain refiner (inoculated melt)</div>
+        <select id="refLevel" aria-label="Grain refiner addition">
+          <option value="none">None (same as untreated)</option>
+          <option value="low">Low: Al-5Ti-1B, 0.02 %</option>
+          <option value="std">Standard: Al-5Ti-1B, 0.1 %</option>
+          <option value="heavy">Heavy: Al-5Ti-1B, 0.5 %</option>
+          <option value="custom">Custom</option>
+        </select>
+        <div id="refCtl" class="body" style="padding:0"></div>
+        <label class="check"><input type="checkbox" id="inocAll"> Add refiner to the whole melt</label>
+        <p class="hint">Otherwise only cells painted as “Inoculated melt” contain refiner.</p>
+        <div class="sub">Mould wall</div>
+        <div id="wallCtl" class="body" style="padding:0"></div>
+        <p class="hint">Copper chills always nucleate many grains (≈ 2.4 per mm, ΔTn ≈ 0.5 K).</p>
+      </div>
+    </details>
+
+    <details class="card" open id="ctrlCard">
+      <summary>Microstructure control</summary>
+      <div class="body">
+        <div id="stirCtl" class="body" style="padding:0"></div>
+        <p class="hint">Stirring breaks dendrite arms and carries the fragments ahead of the front, where they act as new equiaxed grains (electromagnetic or mechanical stirring).</p>
+        <div class="ctl">
+          <label for="seedNum">Random seed <small>(same seed = same nuclei)</small></label>
+          <input type="number" id="seedNum" min="1" max="99999" step="1">
+        </div>
+        <button class="btn small" id="reroll" type="button">New random nuclei</button>
+      </div>
+    </details>
+  </aside>
+
+  <!-- ============ CENTRE: specimen ============ -->
+  <section class="stage">
+    <div class="card">
+    <div class="scenhead"><h2 id="scenTitle"></h2></div>
+    <div class="toolbar">
+      <button class="btn primary" id="runBtn" type="button">Run</button>
+      <button class="btn" id="stepBtn" type="button">Step</button>
+      <button class="btn" id="resetBtn" type="button">Reset</button>
+      <div class="seg" role="group" aria-label="Speed" id="speedSeg">
+        <button type="button" data-speed="slow">Slow</button>
+        <button type="button" data-speed="normal">Normal</button>
+        <button type="button" data-speed="fast">Fast</button>
+      </div>
+      <label class="hint" for="viewSel">View</label>
+      <select id="viewSel">
+        <option value="grains">Grain structure</option>
+        <option value="orient">Crystal orientation</option>
+        <option value="origin">Nucleation origin</option>
+        <option value="temp">Temperature field</option>
+      </select>
+      <span class="grow"></span>
+      <span class="status" id="status">Ready</span>
+    </div>
+
+    <div class="viewport">
+      <div class="cvwrap" id="cvwrap"><canvas id="cv" width="960" height="600" aria-label="Simulated microstructure, 80 mm by 50 mm"></canvas><canvas id="pfgl" style="display:none" aria-label="Phase-field dendrite simulation"></canvas><canvas id="pf2d" style="display:none" aria-label="Phase-field dendrite simulation"></canvas></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    </div>
+
+    <section class="card editor" aria-labelledby="edH" id="editorCard">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="edH">Mould editor</h2>
+        <span class="hint">Pick a material and draw on the specimen (80 × 50 mm). Editing resets the run.</span>
+      </div>
+      <div class="tools" id="tools"></div>
+      <div class="erow">
+        <div class="seg" role="group" aria-label="Drawing shape" style="min-width:170px">
+          <button type="button" id="shapeBrush">Brush</button>
+          <button type="button" id="shapeRect">Rectangle</button>
+        </div>
+        <label>Brush size <input type="range" id="brushSize" min="1" max="24" step="1"> <span class="num" id="brushOut"></span></label>
+        <label class="check"><input type="checkbox" id="drawOn"> Draw on specimen</label>
+        <button class="btn small" id="undoBtn" type="button">Undo</button>
+        <button class="btn small" id="clearBtn" type="button">Clear all</button>
+        <span class="grow"></span>
+        <button class="btn small" id="codeBtn" type="button">Save / load design</button>
+      </div>
+    </section>
+
+    <section class="card results" aria-labelledby="resH">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="resH">Results</h2>
+        <div class="row">
+          <button class="btn small" id="copyRes" type="button">Copy results as text</button>
+          <button class="btn small" id="clearLog" type="button">Clear run log</button>
+        </div>
+      </div>
+      <div class="chips" id="chips"></div>
+      <p class="summary" id="summary"></p>
+      <div class="sub">Run log <span class="hint" style="font-weight:400">Each finished run is added here.</span></div>
+      <div class="tablewrap"><table id="logTable"><thead><tr>
+        <th>#</th><th>Scenario</th><th>Alloy</th><th>Conditions</th><th>Result</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+  </section>
+
+  <!-- ============ RIGHT: alloy & maps ============ -->
+  <aside class="right">
+    <section class="card rcard" aria-labelledby="alH">
+      <h2 id="alH">Alloy &amp; phase diagram</h2>
+      <select id="alloySel" aria-label="Alloy system"></select>
+      <div id="c0Ctl"></div>
+      <canvas id="pd" width="300" height="216" aria-label="Binary phase diagram. Click or drag to choose composition."></canvas>
+      <p class="hint">Click or drag on the diagram to choose the composition (hypoeutectic side).</p>
+      <div class="props" id="props"></div>
+    </section>
+    <section class="card rcard" aria-labelledby="liveH">
+      <h2 id="liveH">Readouts</h2>
+      <div class="derived" id="live"></div>
+    </section>
+    <section class="card rcard about" aria-labelledby="aboutH">
+      <h2 id="aboutH">About this scenario</h2>
+      <p id="about"></p>
+      <div class="sub">Things to try</div>
+      <ul id="tryList"></ul>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <details class="card">
+    <summary>About</summary>
+    <div class="body">
+      <p>The lab uses two models. Grain-scale scenarios (castings, single-crystal blade) use a cellular automaton on an 80 × 50 mm specimen. Dendrite-scale scenarios use a phase-field model on a window a few tens of micrometres wide.</p>
+      <div class="about-grid two">
+        <div>
+          <h3>Grain scale: cellular automaton</h3>
+          <p><b>Nucleation.</b> Each melt cell may hold a potential nucleus with a critical undercooling drawn from a Gaussian distribution (mean ΔTn, spread σ). Separate populations: untreated melt, grain-refined melt, mould walls, chills.</p>
+          <p><b>Growth.</b> Rappaz–Gandin cellular automaton (0.25 mm cells). Each grain grows as a square envelope whose corners are the &lt;100&gt; dendrite tips, at v = A·ΔT² with A = D/(π²·Γ·ΔT₀). The decentred-square rule keeps misoriented grains behind well-aligned ones.</p>
+          <p><b>Heat flow.</b> Casting mode solves heat conduction on a 1 mm grid with mould materials, interface heat-transfer coefficients and latent heat (Scheil release, eutectic plateau); filling is instant and there is no melt flow. Directional mode imposes T = T<sub>L</sub> + G·(s − V·t) with V = Ṫ/G.</p>
+        </div>
+        <div>
+          <h3>Dendrite scale: phase field</h3>
+          <p>Quantitative dilute-binary model with anti-trapping current (Karma 2001; Echebarria, Folch, Karma &amp; Plapp 2004). It solves the phase field φ and the solute supersaturation U, with 4-fold interface anisotropy ε₄ and small fluctuations that trigger side-branching. Equiaxed: uniform temperature cooling at Ṫ. Columnar: fixed window with a frozen temperature field of gradient G moving at V, starting from seed crystals on a chilled wall; the run ends when the window has filled with dendrites. A grain label carries each crystal’s orientation. It runs on the GPU (WebGL2) with a smaller CPU fallback. The coupling constant λ = 25 keeps the dendrite tip radius at about 8 interface widths (roughly 10 cells), which the model needs to hold the crystal anisotropy; an arm is then about 20 cells wide, so the default windows are 1536 × 1536 cells (equiaxed, about 20 dendrites) and 1024 × 1280 cells (columnar). Results are qualitative to semi-quantitative.</p>
+        </div>
+      </div>
+      <div class="about-grid three notes">
+        <div><h3>Limitations</h3><p>Not included: melt flow and grain movement, the eutectic reaction at the end of freezing (remaining liquid stays as enriched liquid), 3D effects, shrinkage porosity. Phase diagrams are linearised; the Ni superalloy is a pseudo-binary approximation.</p></div>
+        <div><h3>Credits</h3><p>Written for this course. The methods follow published work: Rappaz &amp; Gandin (1993) for the cellular automaton, with reference to µMatIC from Imperial College London; Karma (2001) and Echebarria, Folch, Karma &amp; Plapp (2004) for the phase-field model; Kurz &amp; Fisher for the primary-spacing estimate.</p></div>
+        <div><h3>Disclaimer</h3><p>This tool was developed for educational use only, to illustrate solidification concepts in class. The models are simplified and the results are not validated for research, design, process control or any commercial or safety-related decision. It is provided as is, without warranty.</p></div>
+      </div>
+    </div>
+  </details>
+</footer>
+
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="box">
+    <div class="row" style="justify-content:space-between"><h2 id="modalTitle"></h2><button class="btn small" id="modalClose" type="button">Close</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ===== SolidLab core: 2D cellular automaton + heat flow =====
+const CORE = (function () {
+  'use strict';
+  const NX = 320, NY = 200, N = NX * NY;
+  const DX = 0.25e-3, DXmm = 0.25;               // CA cell = 0.25 mm, domain 80 x 50 mm
+  const TF = 4, TNX = NX / TF, TNY = NY / TF, TN = TNX * TNY, TDX = DX * TF; // thermal cell 1 mm
+  const AIR = 0, METAL = 1, SAND = 2, DIE = 3, CHILL = 4, SHELL = 5, INSUL = 6;
+  const MAT = [
+    { key: 'air', name: 'Air / empty' },
+    { key: 'metal', name: 'Melt' },
+    { key: 'sand', name: 'Sand mould', k: 0.7, rc: 1.5e6, h: 800, nuc: true },
+    { key: 'die', name: 'Steel die', k: 35, rc: 3.9e6, h: 2500, nuc: true },
+    { key: 'chill', name: 'Copper chill', k: 380, rc: 3.4e6, h: 6000, nuc: true },
+    { key: 'shell', name: 'Ceramic shell', k: 1.2, rc: 2.4e6, h: 1000, nuc: true },
+    { key: 'insul', name: 'Insulating sleeve', k: 0.08, rc: 3e5, h: 150, nuc: false },
+  ];
+  const ORIGIN = { WALL: 1, CHILL: 2, BULK: 3, SEED: 4, FRAG: 5, FRECKLE: 6, REFINER: 7 };
+
+  // Binary (hypoeutectic) alloys, linearised phase diagrams
+  const ALLOYS = {
+    AlCu: { name: 'Al–Cu', solute: 'Cu', Tm: 660.4, Te: 548.2, Ce: 33.2, k: 0.17, D: 3e-9, Gam: 2.4e-7,
+      betaC: 0.0092, kth: 100, rc: 2.65e6, rL: 9.6e8, nu: 5e-7, C0: 4.5, Cmin: 0.5, Cmaxsel: 30, plotC: 40, Tlow: 400,
+      alpha: 'α-Al', second: 'θ (Al₂Cu)', solvLow: 0.15 },
+    AlSi: { name: 'Al–Si', solute: 'Si', Tm: 660.4, Te: 577, Ce: 12.6, k: 0.13, D: 3e-9, Gam: 1.96e-7,
+      betaC: -0.0005, kth: 100, rc: 2.65e6, rL: 9.6e8, nu: 5e-7, C0: 7, Cmin: 0.5, Cmaxsel: 12, plotC: 16, Tlow: 450,
+      alpha: 'α-Al', second: 'Si', solvLow: 0.05 },
+    Ni: { name: 'Ni superalloy (pseudo-binary)', solute: 'X', Tm: 1455, Te: 1263, Ce: 24, k: 0.55, D: 1.5e-9, Gam: 1.5e-7,
+      betaC: -0.0006, kth: 25, rc: 5.07e6, rL: 2.26e9, nu: 6.4e-7, C0: 9, Cmin: 1, Cmaxsel: 20, plotC: 30, Tlow: 1150,
+      alpha: 'γ (Ni)', second: 'γ′ eutectic', solvLow: 8 },
+  };
+  function alloyProps(key, C0) {
+    const b = ALLOYS[key];
+    const m = (b.Te - b.Tm) / b.Ce;               // liquidus slope (K/wt%), negative
+    const Tl = b.Tm + m * C0;
+    const Csmax = b.k * b.Ce;
+    const Ts = C0 <= Csmax ? b.Tm + m * C0 / b.k : b.Te;   // equilibrium solidus
+    const dT0 = m * C0 * (b.k - 1) / b.k;          // equilibrium freezing range (unclamped)
+    const A = b.D / (Math.PI * Math.PI * b.Gam * dT0); // v = A dT^2 (simplified dendrite-tip kinetics)
+    const fe = Math.pow(C0 / b.Ce, 1 / (1 - b.k)); // Scheil eutectic fraction
+    const dTf = Tl - Math.max(Ts, b.Te);           // actual freezing range used for mushy height
+    return Object.assign({}, b, { key, C0, m, Tl, Ts, Csmax, dT0, A, fe, ge: 1 - fe, dTf, expo: 1 / (b.k - 1), alphaTh: b.kth / b.rc });
+  }
+
+  // ---------- persistent geometry ----------
+  const mats = new Uint8Array(N);
+  const inoc = new Uint8Array(N);     // 1 = grain-refined (inoculated) melt
+  const seedMap = new Int16Array(N);  // seed index + 1
+  let seeds = [];                      // {theta}
+
+  // ---------- parameters ----------
+  const P = {
+    mode: 'casting', alloy: 'AlCu', C0: 4.5,
+    superheat: 20, preheat: 250, chillT: 25,
+    G: 2, Tdot: 0.2, dir: 'up', tilt: 0,
+    nat: { n: 0.05, dTn: 6, sig: 1 },     // native nuclei of untreated melt (per mm^2)
+    ref: { n: 3, dTn: 0.8, sig: 0.3 },    // inoculated melt (grain refiner)
+    inocAll: false,
+    wall: { n: 2, dTn: 1.5, sig: 0.5 },   // per mm of mould wall
+    stir: 0, seed: 1,
+  };
+
+  // ---------- simulation state ----------
+  const grainOf = new Int32Array(N);
+  const state = new Uint8Array(N);
+  const cx = new Float32Array(N), cy = new Float32Array(N), Ls = new Float32Array(N);
+  const caT = new Float32Array(N);
+  let active = new Int32Array(N), nActive = 0;
+  let gTheta = [], gCos = [], gSin = [], gOrigin = [], gTime = [];
+  const siteIdx = new Int32Array(N), siteThr = new Float32Array(N), siteType = new Uint8Array(N); let nSites = 0;
+  const sCoord = new Float32Array(N);
+  // thermal
+  const tType = new Uint8Array(TN), T = new Float64Array(TN), E = new Float64Array(TN), fs = new Float32Array(TN);
+  const gx = new Float32Array(TN), gy = new Float32Array(TN), flux = new Float64Array(TN), rcArr = new Float32Array(TN);
+  const mf = new Float32Array(TN), invSub = new Float32Array(TN), Tprev = new Float64Array(TN);
+  const W4 = new Float32Array(4 * N), I4 = new Int32Array(4 * N), tOf = new Int32Array(N);
+  const metalCA = new Int32Array(N); let nMetalCA = 0;
+  let metalT = new Int32Array(TN), nMetalT = 0, mouldT = new Int32Array(TN), nMouldT = 0;
+  const S = { t: 0, done: false, a: null };
+  let rand = Math.random;
+
+  // mulberry32 pseudo-random generator by Tommy Ettinger (public domain)
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gauss() { let u = 0; while (u === 0) u = rand(); const v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+  function newGrain(thetaDeg, origin) {
+    const id = gTheta.length;
+    let th = thetaDeg;
+    th = ((th + 45) % 90 + 90) % 90 - 45;   // 4-fold symmetry: keep in [-45,45)
+    const r = th * Math.PI / 180;
+    gTheta.push(th); gCos.push(Math.cos(r)); gSin.push(Math.sin(r)); gOrigin.push(origin); gTime.push(S.t);
+    return id;
+  }
+  function addActive(c, g, L0) {
+    grainOf[c] = g; state[c] = 1; cx[c] = c % NX; cy[c] = (c / NX) | 0; Ls[c] = L0;
+    active[nActive++] = c; S.liquid--; if (P.mode === 'casting') mf[tOf[c]] += invSub[tOf[c]];
+  }
+
+  // ---------- directional-solidification derived quantities ----------
+  function dsDerived(Gkmm, Tdot) {
+    const a = S.a || alloyProps(P.alloy, P.C0);
+    const G = Gkmm * 1000, V = Tdot / G;             // K/m, m/s
+    const lam1 = 4.3 * Math.pow(a.dT0 * a.D * a.Gam / a.k, 0.25) * Math.pow(V, -0.25) * Math.pow(G, -0.5); // Kurz–Fisher
+    const dTtip = Math.sqrt(V / a.A);
+    const ratio = (G / V) / (a.dT0 / a.D);
+    return { G, V, lam1, dTtip, ratio };
+  }
+
+  // ---------- reset ----------
+  function reset() {
+    rand = mulberry32((P.seed >>> 0) || 1);
+    const a = S.a = alloyProps(P.alloy, P.C0);
+    S.t = 0; S.done = false; S.maxdT = 0; S.traj = []; S.trajT = -1; S.frontG = NaN; S.frontV = NaN; S.frontTdot = NaN; S.frontdT = NaN;
+    grainOf.fill(0); state.fill(0); Ls.fill(0);
+    gTheta = [0]; gCos = [1]; gSin = [0]; gOrigin = [0]; gTime = [0];
+    nActive = 0; S.metal = 0;
+    for (let c = 0; c < N; c++) if (mats[c] === METAL) S.metal++;
+    S.liquid = S.metal; nMetalCA = 0; for (let c = 0; c < N; c++) if (mats[c] === METAL) metalCA[nMetalCA++] = c;
+    for (let c = 0; c < N; c++) tOf[c] = ((((c / NX) | 0) / TF) | 0) * TNX + (((c % NX) / TF) | 0);
+    if (P.mode === 'casting') { buildTable(); setupThermal(); } else setupDS();
+    // seeds
+    const seedGrain = {};
+    for (let c = 0; c < N; c++) {
+      if (mats[c] !== METAL || !seedMap[c]) continue;
+      const si = seedMap[c] - 1; if (!seeds[si]) continue;
+      if (seedGrain[si] === undefined) seedGrain[si] = newGrain(seeds[si].theta, ORIGIN.SEED);
+      addActive(c, seedGrain[si], 0.5);
+    }
+    // nucleation sites
+    nSites = 0;
+    const wallP = P.wall.n * DXmm;
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const c = j * NX + i;
+      if (mats[c] !== METAL || grainOf[c]) continue;
+      let thr = Infinity, type = 0, chillAdj = 0, wallAdj = 0;
+      const nb = [i > 0 ? c - 1 : -1, i < NX - 1 ? c + 1 : -1, j > 0 ? c - NX : -1, j < NY - 1 ? c + NX : -1];
+      for (const n of nb) { if (n < 0) continue; const m = mats[n]; if (m === CHILL) chillAdj++; else if (m === SAND || m === DIE || m === SHELL) wallAdj++; }
+      if (chillAdj && rand() < 0.6) { thr = 0.5 + 0.2 * gauss(); type = ORIGIN.CHILL; }
+      if (wallAdj && rand() < wallP * wallAdj) { const t = P.wall.dTn + P.wall.sig * gauss(); if (t < thr) { thr = t; type = ORIGIN.WALL; } }
+      const pop = (P.inocAll || inoc[c]) ? P.ref : P.nat;
+      if (rand() < pop.n * DXmm * DXmm) { const t = pop.dTn + pop.sig * gauss(); if (t < thr) { thr = t; type = (pop === P.ref) ? ORIGIN.REFINER : ORIGIN.BULK; } }
+      if (type) { siteIdx[nSites] = c; siteThr[nSites] = Math.max(0.05, thr); siteType[nSites] = type; nSites++; }
+    }
+    computeCaT();
+  }
+
+  function setupDS() {
+    const a = S.a, phi = P.tilt * Math.PI / 180;
+    const dx = Math.sin(phi), dz = P.dir === 'up' ? Math.cos(phi) : -Math.cos(phi);
+    let smin = Infinity, smax = -Infinity;
+    for (let c = 0; c < N; c++) {
+      const i = c % NX, j = (c / NX) | 0;
+      const s = (i + 0.5) * DX * dx + (NY - j - 0.5) * DX * dz;
+      sCoord[c] = s;
+      if (mats[c] === METAL) { if (s < smin) smin = s; if (s > smax) smax = s; }
+    }
+    if (!isFinite(smin)) { smin = 0; smax = 0.05; }
+    S.sMin = smin; S.sMax = smax; S.sL0 = smin; S.sL = smin;
+    S.Gt = P.G * 1000; S.V = P.Tdot / S.Gt;
+  }
+
+  function setupThermal() {
+    const a = S.a;
+    nMetalT = 0; nMouldT = 0;
+    for (let tj = 0; tj < TNY; tj++) for (let ti = 0; ti < TNX; ti++) {
+      const t = tj * TNX + ti; let metal = 0; const cnt = [0, 0, 0, 0, 0, 0, 0];
+      for (let dj = 0; dj < TF; dj++) for (let di = 0; di < TF; di++) { const m = mats[(tj * TF + dj) * NX + ti * TF + di]; cnt[m]++; if (m === METAL) metal++; }
+      const mould = cnt[2] + cnt[3] + cnt[4] + cnt[5] + cnt[6];
+      let ty = AIR;
+      if (metal >= TF * TF / 2 || (metal >= 1 && mould === 0)) ty = METAL;
+      else if (mould > 0) { let best = 2; for (let m = 3; m <= 6; m++) if (cnt[m] > cnt[best]) best = m; ty = best; }
+      else if (metal) ty = METAL;
+      tType[t] = ty; invSub[t] = metal ? 1 / metal : 0; mf[t] = 0; fs[t] = 0;
+      if (ty === METAL) { T[t] = a.Tl + P.superheat; E[t] = a.rc * T[t]; rcArr[t] = a.rc; metalT[nMetalT++] = t; }
+      else if (ty === CHILL) { T[t] = P.chillT; rcArr[t] = MAT[CHILL].rc; }
+      else if (ty !== AIR) { T[t] = P.preheat; rcArr[t] = MAT[ty].rc; mouldT[nMouldT++] = t; }
+      else T[t] = P.preheat;
+      Tprev[t] = T[t];
+    }
+    const kOf = ty => ty === METAL ? a.kth : MAT[ty].k;
+    function cond(p, q) {
+      const ta = tType[p], tb = tType[q];
+      if (ta === AIR || tb === AIR) return 0;
+      if (ta === CHILL && tb === CHILL) return 0;
+      let R = 0;
+      if (ta === METAL && tb !== METAL) R = 1 / MAT[tb].h;
+      if (tb === METAL && ta !== METAL) R = 1 / MAT[ta].h;
+      if (ta === CHILL) return 1 / (TDX / (2 * kOf(tb)) + (tb === METAL ? R : 0)) / TDX;
+      if (tb === CHILL) return 1 / (TDX / (2 * kOf(ta)) + (ta === METAL ? R : 0)) / TDX;
+      return 1 / (TDX / (2 * kOf(ta)) + TDX / (2 * kOf(tb)) + R) / TDX;
+    }
+    const sumG = new Float64Array(TN);
+    for (let tj = 0; tj < TNY; tj++) for (let ti = 0; ti < TNX; ti++) {
+      const t = tj * TNX + ti;
+      gx[t] = ti < TNX - 1 ? cond(t, t + 1) : 0;
+      gy[t] = tj < TNY - 1 ? cond(t, t + TNX) : 0;
+      sumG[t] += gx[t] + gy[t]; if (ti < TNX - 1) sumG[t + 1] += gx[t]; if (tj < TNY - 1) sumG[t + TNX] += gy[t];
+    }
+    let dt = 1;
+    for (let t = 0; t < TN; t++) { const ty = tType[t]; if (ty === AIR || ty === CHILL || sumG[t] === 0) continue; dt = Math.min(dt, 0.9 * rcArr[t] / sumG[t]); }
+    S.dtTh = dt;
+    // bilinear weights CA <- thermal (metal thermal cells only)
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const c = j * NX + i, b = 4 * c;
+      if (mats[c] !== METAL) { I4[b] = tOf[c]; W4[b] = 1; W4[b + 1] = W4[b + 2] = W4[b + 3] = 0; I4[b + 1] = I4[b + 2] = I4[b + 3] = tOf[c]; continue; }
+      const fx = (i + 0.5) / TF - 0.5, fy = (j + 0.5) / TF - 0.5;
+      const i0 = Math.floor(fx), j0 = Math.floor(fy), wx = fx - i0, wy = fy - j0;
+      const cand = [[i0, j0, (1 - wx) * (1 - wy)], [i0 + 1, j0, wx * (1 - wy)], [i0, j0 + 1, (1 - wx) * wy], [i0 + 1, j0 + 1, wx * wy]];
+      let ws = 0;
+      for (let k = 0; k < 4; k++) {
+        const [ti, tj, w] = cand[k];
+        if (ti < 0 || tj < 0 || ti >= TNX || tj >= TNY || tType[tj * TNX + ti] !== METAL) { I4[b + k] = tOf[c]; W4[b + k] = 0; continue; }
+        I4[b + k] = tj * TNX + ti; W4[b + k] = w; ws += w;
+      }
+      if (ws <= 0) { W4[b] = 1; I4[b] = tOf[c]; W4[b + 1] = W4[b + 2] = W4[b + 3] = 0; }
+      else for (let k = 0; k < 4; k++) W4[b + k] /= ws;
+    }
+  }
+
+  // enthalpy -> temperature (Scheil within captured fraction m)
+  // Scheil fraction table g(T) on [Te, Tl] for fast enthalpy inversion
+  const NTAB = 4096, gTab = new Float64Array(NTAB + 1);
+  function buildTable() {
+    const a = S.a, span = a.Tm - a.Tl;
+    for (let k = 0; k <= NTAB; k++) { const x = a.Te + (a.Tl - a.Te) * k / NTAB; gTab[k] = 1 - Math.pow((a.Tm - x) / span, a.expo); }
+    S.tabScale = NTAB / (a.Tl - a.Te);
+  }
+  function solveCell(t) {
+    const a = S.a, rc = a.rc, rL = a.rL, m = mf[t], e = E[t];
+    if (m <= 0 || e / rc >= a.Tl) { T[t] = e / rc; fs[t] = 0; return; }
+    const EeHi = rc * a.Te - rL * m * a.ge, EeLo = rc * a.Te - rL * m;
+    if (e <= EeLo) { fs[t] = m; T[t] = (e + rL * m) / rc; return; }
+    if (e <= EeHi) { T[t] = a.Te; fs[t] = (rc * a.Te - e) / rL; return; }
+    const Te = a.Te, sc = S.tabScale;
+    let lo = Te, hi = a.Tl, x = T[t];
+    if (!(x > lo && x < hi)) x = 0.5 * (lo + hi);
+    let g = 0;
+    for (let it = 0; it < 12; it++) {
+      const f = (x - Te) * sc; let k = f | 0; if (k >= NTAB) k = NTAB - 1; if (k < 0) k = 0;
+      const w = f - k, g0 = gTab[k], g1 = gTab[k + 1];
+      g = g0 + (g1 - g0) * w;
+      const F = rc * x - rL * m * g - e;
+      if (Math.abs(F) < 2e-3 * rc) break;
+      if (F > 0) hi = x; else lo = x;
+      const dg = (g1 - g0) * sc;
+      let xn = x - F / (rc - rL * m * dg);
+      if (!(xn > lo && xn < hi)) xn = 0.5 * (lo + hi);
+      x = xn;
+    }
+    T[t] = x; fs[t] = m * g;
+  }
+
+  function thermalStep(dt) {
+    flux.fill(0);
+    for (let t = 0; t < TN; t++) {
+      const g1 = gx[t]; if (g1 > 0) { const d = g1 * (T[t + 1] - T[t]); flux[t] += d; flux[t + 1] -= d; }
+      const g2 = gy[t]; if (g2 > 0) { const d = g2 * (T[t + TNX] - T[t]); flux[t] += d; flux[t + TNX] -= d; }
+    }
+    for (let k = 0; k < nMetalT; k++) { const t = metalT[k]; E[t] += dt * flux[t]; solveCell(t); }
+    for (let k = 0; k < nMouldT; k++) { const t = mouldT[k]; T[t] += dt * flux[t] / rcArr[t]; }
+  }
+
+  function computeCaT() {
+    if (P.mode === 'casting') {
+      for (let k = 0; k < nMetalCA; k++) {
+        const c = metalCA[k], b = 4 * c;
+        caT[c] = W4[b] * T[I4[b]] + W4[b + 1] * T[I4[b + 1]] + W4[b + 2] * T[I4[b + 2]] + W4[b + 3] * T[I4[b + 3]];
+      }
+    } else {
+      const a = S.a, G = S.Gt;
+      for (let k = 0; k < nMetalCA; k++) { const c = metalCA[k]; caT[c] = a.Tl + G * (sCoord[c] - S.sL); }
+    }
+  }
+
+  const NB = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  const SQ2 = Math.SQRT2;
+  function nucleate(c, origin, theta) {
+    const g = newGrain(theta === undefined ? rand() * 90 - 45 : theta, origin);
+    addActive(c, g, 0.1);
+    return g;
+  }
+
+  function caStep(dt) {
+    const a = S.a, Tl = a.Tl, A = a.A;
+    // 1. nucleation
+    for (let k = nSites - 1; k >= 0; k--) {
+      const c = siteIdx[k];
+      if (grainOf[c]) { nSites--; siteIdx[k] = siteIdx[nSites]; siteThr[k] = siteThr[nSites]; siteType[k] = siteType[nSites]; continue; }
+      if (Tl - caT[c] >= siteThr[k]) {
+        nucleate(c, siteType[k]);
+        nSites--; siteIdx[k] = siteIdx[nSites]; siteThr[k] = siteThr[nSites]; siteType[k] = siteType[nSites];
+      }
+    }
+    // 2. stirring -> dendrite fragments carried ahead of the front
+    if (P.stir > 0 && nActive > 0) {
+      const expct = P.stir * nActive * DXmm * dt * 0.5;
+      let nf = Math.floor(expct + rand());
+      while (nf-- > 0) {
+        const c0 = active[(rand() * nActive) | 0];
+        const ang = rand() * 2 * Math.PI, dist = 8 + rand() * 16;
+        const i = Math.round(c0 % NX + Math.cos(ang) * dist), j = Math.round(((c0 / NX) | 0) + Math.sin(ang) * dist);
+        if (i < 0 || j < 0 || i >= NX || j >= NY) continue;
+        const c = j * NX + i;
+        if (mats[c] === METAL && !grainOf[c] && caT[c] < Tl + 0.5) nucleate(c, ORIGIN.FRAG);
+      }
+    }
+    // 4. growth + capture (decentred square algorithm)
+    let maxdT = 0, w = 0;
+    const startN = nActive;
+    for (let k = 0; k < startN; k++) {
+      const c = active[k];
+      const dT = Tl - caT[c];
+      if (dT > 0) { Ls[c] += Math.min(0.5, A * dT * dT * dt / DX); if (dT > maxdT) maxdT = dT; }
+      const g = grainOf[c], s = gSin[g], co = gCos[g];
+      const e1x = s, e1y = -co, e2x = co, e2y = s;
+      const i = c % NX, j = (c / NX) | 0;
+      const L = Ls[c], X = cx[c], Y = cy[c];
+      let liquidNb = false;
+      for (let q = 0; q < 8; q++) {
+        const ni = i + NB[q][0], nj = j + NB[q][1];
+        if (ni < 0 || nj < 0 || ni >= NX || nj >= NY) continue;
+        const n = nj * NX + ni;
+        if (mats[n] !== METAL || grainOf[n]) continue;
+        liquidNb = true;
+        if (caT[n] >= Tl || dT <= 0) continue;
+        const px = ni - X, py = nj - Y;
+        const u = px * e1x + py * e1y, v = px * e2x + py * e2y;
+        const au = Math.abs(u), av = Math.abs(v);
+        if (au + av > L) continue;
+        // capture: new square keeps the tip (corner S1) of the parent square
+        let S1x, S1y, dirx, diry, t1, t2;
+        if (au >= av) { const sg = u >= 0 ? 1 : -1; dirx = sg * e1x; diry = sg * e1y; t1 = (L - au + v) / SQ2; t2 = (L - au - v) / SQ2; }
+        else { const sg = v >= 0 ? 1 : -1; dirx = sg * e2x; diry = sg * e2y; t1 = (L - av + u) / SQ2; t2 = (L - av - u) / SQ2; }
+        S1x = X + L * dirx; S1y = Y + L * diry;
+        t1 = Math.min(Math.max(t1, 0), SQ2); t2 = Math.min(Math.max(t2, 0), SQ2);
+        const Ln = 0.5 * (t1 + t2);
+        grainOf[n] = g; state[n] = 1; cx[n] = S1x - Ln * dirx; cy[n] = S1y - Ln * diry; Ls[n] = Ln;
+        active[nActive++] = n; S.liquid--;
+        if (P.mode === 'casting') mf[tOf[n]] += invSub[tOf[n]];
+      }
+      if (liquidNb) active[w++] = c; else state[c] = 2;
+    }
+    // compact: survivors [0,w) + newly captured [startN, nActive)
+    for (let k = startN; k < nActive; k++) active[w++] = active[k];
+    nActive = w;
+    S.maxdT = maxdT;
+  }
+
+  function measureFront(dt) {
+    const a = S.a; const Gs = [], Vs = [], Rs = [];
+    for (let k = 0; k < nMetalT; k++) {
+      const t = metalT[k];
+      if (Math.abs(T[t] - a.Tl) < 3 && Tprev[t] > T[t]) {
+        const ti = t % TNX, tj = (t / TNX) | 0;
+        const l = ti > 0 && tType[t - 1] === METAL ? t - 1 : t, r = ti < TNX - 1 && tType[t + 1] === METAL ? t + 1 : t;
+        const u = tj > 0 && tType[t - TNX] === METAL ? t - TNX : t, d = tj < TNY - 1 && tType[t + TNX] === METAL ? t + TNX : t;
+        const gxv = (T[r] - T[l]) / (((r - l) || 1) * TDX) * (r === l ? 0 : 1);
+        const gyv = (T[d] - T[u]) / ((((d - u) / TNX) || 1) * TDX) * (d === u ? 0 : 1);
+        const G = Math.hypot(gxv, gyv), R = (Tprev[t] - T[t]) / dt;
+        if (G > 1) { Gs.push(G); Rs.push(R); Vs.push(R / G); }
+      }
+      Tprev[t] = T[t];
+    }
+    const med = arr => { if (!arr.length) return NaN; arr.sort((x, y) => x - y); return arr[arr.length >> 1]; };
+    S.frontG = med(Gs) / 1000; S.frontTdot = med(Rs); S.frontV = med(Vs) * 1000;
+    if (isFinite(S.frontG) && isFinite(S.frontV) && S.frontV > 0 && S.t - S.trajT > 0.25) { S.traj.push([S.frontV, S.frontG]); S.trajT = S.t; if (S.traj.length > 2000) S.traj.shift(); }
+  }
+
+  function macroStep() {
+    const a = S.a;
+    const vmax = a.A * S.maxdT * S.maxdT;
+    let dt = vmax > 0 ? 0.3 * DX / vmax : 1e9;
+    if (P.mode === 'ds') {
+      dt = Math.min(dt, 0.35 * DX / S.V);
+      S.t += dt; S.sL = S.sL0 + S.V * S.t; computeCaT();
+    } else {
+      dt = Math.min(dt, 0.1);
+      const n = Math.max(1, Math.ceil(dt / S.dtTh)), h = dt / n;
+      for (let k = 0; k < n; k++) thermalStep(h);
+      S.t += dt; computeCaT(); measureFront(dt);
+    }
+    caStep(dt);
+    S.frontdT = S.maxdT;
+    if (S.liquid <= 0) S.done = true;   // every melt cell captured: grain structure is final
+    if (P.mode === 'ds' && S.sL > S.sMax + a.dTf / Math.max(S.Gt, 1) + 0.002) S.done = true;
+    if (S.t > 5000) S.done = true;
+    if (S.metal === 0) S.done = true;
+  }
+  function advance(budgetMs, maxSteps) {
+    if (S.done) return 0;
+    const t0 = (typeof performance !== 'undefined' ? performance : Date).now();
+    let n = 0;
+    do { macroStep(); n++; } while (!S.done && n < maxSteps && (typeof performance !== 'undefined' ? performance : Date).now() - t0 < budgetMs);
+    return n;
+  }
+
+  // ---------- analysis ----------
+  function stats() {
+    const nG = gTheta.length;
+    const cnt = new Float64Array(nG), sx = new Float64Array(nG), sy = new Float64Array(nG), sxx = new Float64Array(nG), syy = new Float64Array(nG), sxy = new Float64Array(nG);
+    for (let c = 0; c < N; c++) {
+      const g = grainOf[c]; if (!g || mats[c] !== METAL) continue;
+      const x = c % NX, y = (c / NX) | 0;
+      cnt[g]++; sx[g] += x; sy[g] += y; sxx[g] += x * x; syy[g] += y * y; sxy[g] += x * y;
+    }
+    const isCol = new Uint8Array(nG);
+    let total = 0, colA = 0, eqA = 0, nCol = 0, nEq = 0, eqECD = 0, chillZone = 0, frag = 0, solid = 0, refiner = 0;
+    for (let g = 1; g < nG; g++) {
+      const n = cnt[g]; if (n < 3) continue;
+      solid += n; total++;
+      const mx = sx[g] / n, my = sy[g] / n;
+      const a = sxx[g] / n - mx * mx + 1 / 12, b = sxy[g] / n - mx * my, d = syy[g] / n - my * my + 1 / 12;
+      const tr = (a + d) / 2, det = Math.sqrt(Math.max(0, (a - d) * (a - d) / 4 + b * b));
+      const elong = Math.sqrt((tr + det) / Math.max(tr - det, 1 / 12));
+      const ecd = 2 * Math.sqrt(n * DXmm * DXmm / Math.PI);
+      const o = gOrigin[g];
+      if ((elong >= 2.2 && n >= 20) || (ecd >= 6 && (o === ORIGIN.SEED || o === ORIGIN.CHILL || o === ORIGIN.WALL))) { isCol[g] = 1; nCol++; colA += n; }
+      else { nEq++; eqA += n; eqECD += ecd; if ((o === ORIGIN.WALL || o === ORIGIN.CHILL) && ecd < 1.5) chillZone++; }
+      if (o === ORIGIN.REFINER) refiner++;
+      if (o === ORIGIN.FRAG) frag++;
+    }
+    const r = { grains: total, nCol, nEq, colFrac: solid ? colA / solid : 0, eqFrac: solid ? eqA / solid : 0, eqECD: nEq ? eqECD / nEq : 0, chillZone, frag, refiner, solidFrac: S.metal ? 1 - S.liquid / S.metal : 0 };
+    if (P.mode === 'ds' && S.metal) {
+      // grains reaching the top 2 mm of the casting
+      const top = new Set(), sTop = S.sMax - 0.002;
+      for (let c = 0; c < N; c++) {
+        if (mats[c] !== METAL || !grainOf[c]) continue;
+        const g = grainOf[c]; if (cnt[g] >= 6 && sCoord[c] >= sTop) top.add(g);
+      }
+      r.topGrains = top.size;
+    }
+    return r;
+  }
+
+  return {
+    NX, NY, N, DX, DXmm, TF, TNX, TNY, AIR, METAL, SAND, DIE, CHILL, SHELL, INSUL, MAT, ORIGIN, ALLOYS,
+    alloyProps, dsDerived, mats, inoc, seedMap, get seeds() { return seeds; }, set seeds(v) { seeds = v; },
+    P, S, grainOf, state, caT, T, fs, tType, tOf,
+    get gTheta() { return gTheta; }, get gOrigin() { return gOrigin; },
+    reset, advance, stats,
+    get nActive() { return nActive; },
+  };
+})();
+
+
+// ===== Scenario presets =====
+const PRESETS = (function (C) {
+  const { NX, NY, DXmm, AIR, METAL, SAND, DIE, CHILL, SHELL, INSUL } = C;
+  function clear() { C.mats.fill(AIR); C.inoc.fill(0); C.seedMap.fill(0); C.seeds = []; }
+  function rect(x0, z0, w, h, mat, inocFlag) {
+    const i0 = Math.max(0, Math.round(x0 / DXmm)), i1 = Math.min(NX, Math.round((x0 + w) / DXmm));
+    const k0 = Math.max(0, Math.round(z0 / DXmm)), k1 = Math.min(NY, Math.round((z0 + h) / DXmm));
+    for (let k = k0; k < k1; k++) { const j = NY - 1 - k; for (let i = i0; i < i1; i++) { const c = j * NX + i; C.mats[c] = mat; C.inoc[c] = inocFlag ? 1 : 0; C.seedMap[c] = 0; } }
+  }
+  function seedRect(x0, z0, w, h, theta) {
+    const idx = C.seeds.length; C.seeds.push({ theta });
+    const i0 = Math.max(0, Math.round(x0 / DXmm)), i1 = Math.min(NX, Math.round((x0 + w) / DXmm));
+    const k0 = Math.max(0, Math.round(z0 / DXmm)), k1 = Math.min(NY, Math.round((z0 + h) / DXmm));
+    for (let k = k0; k < k1; k++) { const j = NY - 1 - k; for (let i = i0; i < i1; i++) { const c = j * NX + i; C.mats[c] = METAL; C.seedMap[c] = idx + 1; C.inoc[c] = 0; } }
+  }
+  function wrap(mm, mat) {   // put a layer of mould material around all melt
+    const r = Math.round(mm / DXmm);
+    let cur = new Uint8Array(C.N); for (let c = 0; c < C.N; c++) cur[c] = C.mats[c] === METAL ? 1 : 0;
+    for (let p = 0; p < r; p++) {
+      const nxt = cur.slice();
+      for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+        const c = j * NX + i; if (cur[c]) continue;
+        if ((i > 0 && cur[c - 1]) || (i < NX - 1 && cur[c + 1]) || (j > 0 && cur[c - NX]) || (j < NY - 1 && cur[c + NX]) ||
+          (i > 0 && j > 0 && cur[c - NX - 1]) || (i < NX - 1 && j < NY - 1 && cur[c + NX + 1]) || (i > 0 && j < NY - 1 && cur[c + NX - 1]) || (i < NX - 1 && j > 0 && cur[c - NX + 1])) nxt[c] = 1;
+      }
+      cur = nxt;
+    }
+    for (let c = 0; c < C.N; c++) if (cur[c] && C.mats[c] === AIR) C.mats[c] = mat;
+  }
+  const base = () => ({
+    mode: 'casting', alloy: 'AlCu', C0: 4.5, superheat: 20, preheat: 250, chillT: 25,
+    G: 2, Tdot: 0.2, dir: 'up', tilt: 0,
+    nat: { n: 0.05, dTn: 6, sig: 1 }, ref: { n: 3, dTn: 0.8, sig: 0.3 }, inocAll: false,
+    wall: { n: 2, dTn: 1.5, sig: 0.5 }, stir: 0, seed: 7,
+  });
+  const list = [
+    {
+      id: 'ingot', name: 'Ingot: chill, columnar & equiaxed zones', view: 'grains',
+      build() { clear(); rect(0, 0, 80, 50, DIE); rect(6, 6, 68, 41, METAL); rect(6, 47, 68, 3, INSUL); },
+      params: { mode: 'casting', alloy: 'AlCu', C0: 4.5, superheat: 25, preheat: 300, nat: { n: 0.15, dTn: 5, sig: 1 }, wall: { n: 6, dTn: 1, sig: 0.3 } },
+      app: 'ingot',
+      about: 'An Al–4.5Cu ingot poured into a preheated steel die with an insulated hot top. Three zones form: fine chill grains on the wall, columnar grains growing against the heat flow, and an equiaxed core where the gradient becomes too low.',
+      tryList: ['Switch View → Nucleation origin to see which grains came from the wall and which nucleated in the melt.', 'Raise superheat to 80 K: the columnar zone grows, the equiaxed core shrinks.', 'Tick “Add refiner to the whole melt” and compare.', 'Watch the live readouts: G at the front falls as solidification reaches the centre.'],
+    },
+    {
+      id: 'refiner', name: 'Grain refiner: untreated vs inoculated melt', view: 'grains',
+      build() { clear(); rect(0, 0, 80, 50, SAND); rect(5, 5, 33, 40, METAL); rect(42, 5, 33, 40, METAL, true); },
+      params: { mode: 'casting', alloy: 'AlSi', C0: 7, superheat: 30, preheat: 25, nat: { n: 0.03, dTn: 6, sig: 1 }, ref: { n: 3, dTn: 0.6, sig: 0.2 }, wall: { n: 1, dTn: 2, sig: 0.6 } },
+      app: 'refine',
+      about: 'Two sand-mould cavities of Al–7Si poured at the same time. The left melt is untreated (few native nuclei, which need large undercooling). The right melt is inoculated with a grain refiner (e.g. Al-5Ti-1B): many TiB₂ particles that nucleate at small undercooling.',
+      tryList: ['Compare grain size left vs right in the Results panel (equiaxed ECD).', 'Change the refiner level (None / Low / Standard / Heavy) and re-run.', 'Increase the nucleation undercooling ΔTn of the refiner: the refiner gets less effective.', 'Paint your own inoculated region with the “Inoculated melt” tool in the editor.'],
+    },
+    {
+      id: 'chillgrowth', name: 'Grain selection from a chill plate', view: 'orient',
+      build() { clear(); rect(10, 0, 60, 2, CHILL); rect(10, 2, 60, 48, METAL); rect(8, 2, 2, 48, SHELL); rect(70, 2, 2, 48, SHELL); },
+      params: { mode: 'ds', alloy: 'AlCu', C0: 4, G: 3, Tdot: 0.6, nat: { n: 0.01, dTn: 15, sig: 1 }, wall: { n: 0, dTn: 5, sig: 1 } },
+      app: 'ds',
+      about: 'Many randomly oriented grains nucleate on a water-cooled copper chill and then compete. Grains whose <100> direction is close to the heat-flow direction crowd out the others, building a <100> fibre texture, as in directionally solidified (DS) columnar turbine blades.',
+      tryList: ['Use View → Crystal orientation: colours converge toward the 0° colour with height.', 'Count grains at the bottom vs the top (Results).', 'Tilt the isotherms by 20°: now grains aligned with the new heat-flow direction win.', 'For the dendrite-scale view of this competition, open “Columnar dendritic growth”.'],
+    },
+    {
+      id: 'sx', name: 'Single-crystal turbine blade (grain selector)', view: 'grains',
+      build() {
+        clear();
+        rect(22, 0, 36, 2, CHILL);
+        rect(25, 2, 30, 9, METAL);                  // starter block
+        rect(38, 11, 2.5, 6, METAL);                // selector: up
+        rect(38, 17, 9, 2.5, METAL);                // jog right
+        rect(44.5, 17, 2.5, 6, METAL);              // up
+        rect(36, 23, 11, 2.5, METAL);               // jog left
+        rect(36, 23, 2.5, 7, METAL);                // up into blade
+        rect(31, 30, 18, 9, METAL);                 // airfoil root
+        rect(16, 39, 48, 4, METAL);                 // platform
+        rect(33, 43, 14, 7, METAL);                 // airfoil
+        wrap(1.5, SHELL);
+      },
+      params: { mode: 'ds', alloy: 'Ni', C0: 9, G: 4, Tdot: 0.2, nat: { n: 0.3, dTn: 9, sig: 1.5 }, wall: { n: 0, dTn: 6, sig: 1 } },
+      app: 'sx',
+      about: 'Bridgman casting of a Ni-base superalloy blade. Grains nucleate on the chill, compete in the starter block, and the zig-zag grain selector (2D version of the “pigtail” helix) lets only one grain through. The whole blade becomes a single crystal with no grain boundaries, which is why it resists creep at high temperature.',
+      tryList: ['Results should show a single crystal at the top.', 'Make the selector channel wider with the editor (Melt tool): more grains get through.', 'Remove the zig-zag (paint it straight): how many grains reach the blade now?', 'Switch View → Crystal orientation: what orientation did the surviving grain have?'],
+    },
+    {
+      id: 'equiaxed', pf: 'iso', name: 'Equiaxed dendritic growth (dendrite scale)', view: 'comp',
+      build() { },
+      params: { alloy: 'AlCu', C0: 4.5 },
+      app: 'refine',
+      about: 'Zooms in to a window of undercooled melt some tens of micrometres wide, where nuclei grow freely as equiaxed dendrites while the melt keeps cooling. Primary arms grow along <100>, secondary arms branch off at right angles, and tertiary arms can branch from those. The phase-field model resolves every dendrite arm and the solute field: solute (Cu) is rejected by the growing crystal, so the dendrite cores are solute-poor (blue), the melt is green and the liquid between the arms is enriched (orange–red). This is the origin of microsegregation and coring.',
+      tryList: ['Increase the undercooling ΔT: dendrites grow faster and get finer.', 'Change the number of nuclei (default 20): arms are blocked when the solute fields of neighbouring grains overlap (soft impingement).', 'Change the anisotropy ε₄: low ε₄ gives seaweed-like shapes, high ε₄ sharp needles. Raise Fluctuations for more side-branches.', 'Switch Al–Cu to the Ni superalloy (k = 0.55): segregation is much weaker.'],
+    },
+    {
+      id: 'columnar', pf: 'ds', name: 'Columnar dendritic growth (dendrite scale)', view: 'comp',
+      build() { },
+      params: { alloy: 'AlCu', C0: 4.5 },
+      app: 'ds',
+      about: 'Seed crystals on a chilled wall (bottom) grow upward into undercooled melt in a temperature gradient, in a fixed window. Each crystal has its own <100> orientation. Primary trunks grow along <100>, secondary arms fill the gaps, and tertiary arms can become new trunks where there is room. Well-aligned crystals overgrow tilted ones: competitive growth seen at the scale of individual dendrites.',
+      tryList: ['Set two crystals at 0° and 30°: which one reaches the top of the window? Then try 0° and −30°.', 'Use 4–6 crystals with random orientations and watch the number of surviving crystals.', 'Change the number of seeds: with wide spacing, tertiary arms grow up as new primary trunks; with narrow spacing, some trunks are eliminated.', 'Switch View → Crystals to see the grain boundaries between dendrite families.'],
+    },
+    {
+      id: 'custom', name: 'Custom: design your own mould', view: 'grains',
+      build() { clear(); rect(0, 0, 80, 50, SAND); rect(15, 8, 50, 30, METAL); },
+      params: { mode: 'casting', alloy: 'AlSi', C0: 7, superheat: 30, preheat: 25, nat: { n: 0.2, dTn: 3, sig: 1 }, wall: { n: 2, dTn: 1.5, sig: 0.5 } },
+      app: 'other',
+      about: 'Start from a plain sand mould cavity. Use the Mould editor to draw melt, mould materials, chills, insulation and inoculated melt, then choose casting or directional mode.',
+      tryList: ['Draw a casting with a thin and a thick section: which solidifies first?', 'Add a copper chill to one side and compare the grain structure next to it.', 'Use “Save / load” to keep your design and share it with your group.'],
+    },
+  ];
+  function apply(p) {
+    if (!p.pf) p.build();
+    const b = base(); const q = p.params;
+    Object.assign(C.P, b, q);
+    C.P.nat = Object.assign({}, b.nat, q.nat || {}); C.P.ref = Object.assign({}, b.ref, q.ref || {}); C.P.wall = Object.assign({}, b.wall, q.wall || {});
+  }
+  return { list, apply, rect, seedRect, wrap, clear };
+})(CORE);
+
+
+// ===== Dendrite-scale phase-field model (quantitative dilute-alloy model, Karma 2001; Echebarria et al. 2004) =====
+// phi = +1 solid, -1 liquid. U = dimensionless supersaturation. Grain id (B channel) carries crystal orientation.
+// GPU (WebGL2, float textures) with a smaller CPU fallback.
+const DENDRITE = (function () {
+  'use strict';
+  const A1 = 0.8839, A2 = 0.6267, DX = 0.8;
+  let LAM = 8, DT_ = A2 * LAM, DT = 0.026;   // per-run: coupling constant lambda, D~ = a2*lambda, time step
+  const MAXG = 32;
+  const RAMP = [[0, [0.08, 0.10, 0.92]], [0.2, [0.42, 0.12, 0.62]], [0.42, [0.84, 0.17, 0.15]], [0.62, [0.93, 0.60, 0.20]], [0.8, [0.97, 0.86, 0.40]], [1, [1.0, 0.99, 0.89]]];
+  const rampJS = x => { x = Math.max(0, Math.min(1, x)); for (let i = 1; i < RAMP.length; i++) if (x <= RAMP[i][0]) { const [a, ca] = RAMP[i - 1], [b, cb] = RAMP[i], w = (x - a) / (b - a); return ca.map((v, j) => v + (cb[j] - v) * w); } return RAMP[5][1]; };
+  // Turbo colour map, polynomial approximation. Copyright 2019 Google LLC. SPDX-License-Identifier: Apache-2.0
+  // (https://www.apache.org/licenses/LICENSE-2.0). Authors: Anton Mikhailov; colormap design: Anton Mikhailov.
+  // Changes: ported from GLSL to JavaScript; the GLSL copy below is used inside the display shader.
+  const turboJS = x => { x = Math.max(0, Math.min(1, x)); const v = [1, x, x * x, x * x * x], v2 = [v[2] * v[2], v[3] * v[2]];
+    const d = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    return [d(v, [0.13572138, 4.61539260, -42.66032258, 132.13108234]) + v2[0] * -152.94239396 + v2[1] * 59.28637943,
+      d(v, [0.09140261, 2.19418839, 4.84296658, -14.18503333]) + v2[0] * 4.27729857 + v2[1] * 2.82956604,
+      d(v, [0.10667330, 12.64194608, -60.58204836, 110.36276771]) + v2[0] * -89.90310912 + v2[1] * 27.34824973].map(c => Math.max(0, Math.min(1, c))); };
+
+  const VS = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
+  const HEAD = `#version 300 es
+precision highp float; precision highp int;
+uniform sampler2D S; uniform ivec2 size; out vec4 o;
+vec4 F(ivec2 q){ return texelFetch(S, clamp(q, ivec2(0), size - 1), 0); }
+`;
+  const PHI = HEAD + `
+uniform float dx, dt, eps, lam, k, t, V, lT, z0, zOff, noise, seed, zt0, rate; uniform int ds;
+uniform float cT[${MAXG}]; uniform float sT[${MAXG}];
+vec2 an(float gx, float gy, int g){
+  float g2 = gx*gx + gy*gy; if (g2 < 1e-12) return vec2(1.0, 0.0);
+  float iv = inversesqrt(g2); float nx = gx*iv, ny = gy*iv;
+  float c = nx*cT[g] + ny*sT[g], s = -nx*sT[g] + ny*cT[g]; float c2 = c*c, s2 = s*s;
+  return vec2(1.0 + eps*(c2*c2 - 6.0*c2*s2 + s2*s2), -16.0*eps*c*s*(c2 - s2));
+}
+// integer hash for the noise term (lowbias32 mixer by Chris Wellons, released into the public domain)
+float hash(vec3 p){ uvec3 u = uvec3(p); uint h = u.x * 7919u + u.y * 104729u + u.z * 1299709u + 12345u; h ^= h >> 16; h *= 0x7feb352du; h ^= h >> 15; h *= 0x846ca68bu; h ^= h >> 16; return float(h >> 8) / 16777216.0; }
+void main(){
+  ivec2 q = ivec2(gl_FragCoord.xy);
+  vec4 C = F(q); float p = C.r;
+  vec4 E = F(q + ivec2(1,0)), W = F(q + ivec2(-1,0)), N = F(q + ivec2(0,1)), Sd = F(q + ivec2(0,-1));
+  float pNE = F(q + ivec2(1,1)).r, pNW = F(q + ivec2(-1,1)).r, pSE = F(q + ivec2(1,-1)).r, pSW = F(q + ivec2(-1,-1)).r;
+  int gC = int(C.b + 0.5), gE = int(E.b + 0.5), gW = int(W.b + 0.5), gN = int(N.b + 0.5), gS = int(Sd.b + 0.5);
+  float gx, gy; vec2 r;
+  gx = (E.r - p)/dx; gy = (N.r + pNE - Sd.r - pSE)/(4.0*dx); r = an(gx, gy, E.r > p ? gE : gC); float JxE = r.x*r.x*gx - r.x*r.y*gy;
+  gx = (p - W.r)/dx; gy = (N.r + pNW - Sd.r - pSW)/(4.0*dx); r = an(gx, gy, W.r > p ? gW : gC); float JxW = r.x*r.x*gx - r.x*r.y*gy;
+  gy = (N.r - p)/dx; gx = (E.r + pNE - W.r - pNW)/(4.0*dx); r = an(gx, gy, N.r > p ? gN : gC); float JyN = r.x*r.x*gy + r.x*r.y*gx;
+  gy = (p - Sd.r)/dx; gx = (E.r + pSE - W.r - pSW)/(4.0*dx); r = an(gx, gy, Sd.r > p ? gS : gC); float JyS = r.x*r.x*gy + r.x*r.y*gx;
+  float dv = (JxE - JxW + JyN - JyS)/dx;
+  float mx = p; int g = gC;
+  if (E.r > mx) { mx = E.r; g = gE; } if (W.r > mx) { mx = W.r; g = gW; } if (N.r > mx) { mx = N.r; g = gN; } if (Sd.r > mx) { mx = Sd.r; g = gS; }
+  int gNew = (p < 0.0 && mx > p && g > 0) ? g : gC;
+  float ac = an((E.r - W.r)/(2.0*dx), (N.r - Sd.r)/(2.0*dx), gNew).x;
+  float u = C.g, tau, drive;
+  float zt = ds == 1 ? (float(q.y)*dx + zOff - z0 - V*t)/lT : zt0 - rate*t;   // reduced temperature (T - T_S)/dT0
+  tau = ac*ac*max(0.15, 1.0 - (1.0 - k)*zt); drive = u + zt;
+  float qq = 1.0 - p*p;
+  float dp = (dv + p - p*p*p - lam*qq*qq*drive)/tau;
+  dp += noise*qq*(hash(vec3(gl_FragCoord.xy, seed)) - 0.5)/sqrt(dt);
+  o = vec4(p + dt*dp, u, float(gNew), dp);
+}`;
+  const UEQ = HEAD + `
+uniform float dx, dt, k, D;
+void main(){
+  ivec2 q = ivec2(gl_FragCoord.xy);
+  vec4 C = F(q); float p = C.r, u = C.g, dp = C.a;
+  vec4 E = F(q + ivec2(1,0)), W = F(q + ivec2(-1,0)), N = F(q + ivec2(0,1)), Sd = F(q + ivec2(0,-1));
+  float pNE = F(q + ivec2(1,1)).r, pNW = F(q + ivec2(-1,1)).r, pSE = F(q + ivec2(1,-1)).r, pSW = F(q + ivec2(-1,-1)).r;
+  const float a8 = 0.35355339;
+  float fl = 0.0, gn, gt, m, nn;
+  gn = (E.r - p)/dx; gt = (N.r + pNE - Sd.r - pSE)/(4.0*dx); m = sqrt(gn*gn + gt*gt); nn = m > 1e-8 ? gn/m : 0.0;
+  fl += D*(2.0 - p - E.r)*0.25*(E.g - u)/dx + a8*(1.0 + (1.0 - k)*0.5*(u + E.g))*0.5*(dp + E.a)*nn;
+  gn = (p - W.r)/dx; gt = (N.r + pNW - Sd.r - pSW)/(4.0*dx); m = sqrt(gn*gn + gt*gt); nn = m > 1e-8 ? gn/m : 0.0;
+  fl += D*(2.0 - p - W.r)*0.25*(W.g - u)/dx - a8*(1.0 + (1.0 - k)*0.5*(u + W.g))*0.5*(dp + W.a)*nn;
+  gn = (N.r - p)/dx; gt = (E.r + pNE - W.r - pNW)/(4.0*dx); m = sqrt(gn*gn + gt*gt); nn = m > 1e-8 ? gn/m : 0.0;
+  fl += D*(2.0 - p - N.r)*0.25*(N.g - u)/dx + a8*(1.0 + (1.0 - k)*0.5*(u + N.g))*0.5*(dp + N.a)*nn;
+  gn = (p - Sd.r)/dx; gt = (E.r + pSE - W.r - pSW)/(4.0*dx); m = sqrt(gn*gn + gt*gt); nn = m > 1e-8 ? gn/m : 0.0;
+  fl += D*(2.0 - p - Sd.r)*0.25*(Sd.g - u)/dx - a8*(1.0 + (1.0 - k)*0.5*(u + Sd.g))*0.5*(dp + Sd.a)*nn;
+  fl /= dx;
+  float rhs = fl + 0.5*(1.0 + (1.0 - k)*u)*dp;
+  o = vec4(p, u + dt*rhs/((1.0 + k)*0.5 - (1.0 - k)*0.5*p), C.b, dp);
+}`;
+  const SHIFT = HEAD + `
+uniform int sh;
+void main(){ ivec2 q = ivec2(gl_FragCoord.xy); o = (q.y + sh < size.y) ? F(q + ivec2(0, sh)) : vec4(-1.0, -1.0, 0.0, 0.0); }`;
+  const REDUCE = HEAD + `
+uniform int f;
+void main(){ o = F(ivec2(gl_FragCoord.xy) * f); }`;
+  const SHOW = HEAD + `
+uniform int view; uniform float k, cfac, lo, hi; uniform vec3 col[${MAXG}];
+// Turbo colour map polynomial approximation: Copyright 2019 Google LLC, Apache-2.0 (see note at the top of this module)
+vec3 turbo(float x){ x = clamp(x, 0.0, 1.0); vec4 v4 = vec4(1.0, x, x*x, x*x*x); vec2 v2 = v4.zw*v4.z;
+  return clamp(vec3(dot(v4, vec4(0.13572138, 4.61539260, -42.66032258, 132.13108234)) + dot(v2, vec2(-152.94239396, 59.28637943)),
+              dot(v4, vec4(0.09140261, 2.19418839, 4.84296658, -14.18503333)) + dot(v2, vec2(4.27729857, 2.82956604)),
+              dot(v4, vec4(0.10667330, 12.64194608, -60.58204836, 110.36276771)) + dot(v2, vec2(-89.90310912, 27.34824973))), 0.0, 1.0); }
+vec3 ramp(float x){ x = clamp(x, 0.0, 1.0);
+  vec3 c0 = vec3(0.08,0.10,0.92), c1 = vec3(0.42,0.12,0.62), c2 = vec3(0.84,0.17,0.15), c3 = vec3(0.93,0.60,0.20), c4 = vec3(0.97,0.86,0.40), c5 = vec3(1.0,0.99,0.89);
+  if (x < 0.2) return mix(c0, c1, x/0.2); if (x < 0.42) return mix(c1, c2, (x-0.2)/0.22); if (x < 0.62) return mix(c2, c3, (x-0.42)/0.2);
+  if (x < 0.8) return mix(c3, c4, (x-0.62)/0.18); return mix(c4, c5, (x-0.8)/0.2); }
+void main(){
+  ivec2 q = ivec2(gl_FragCoord.xy); vec4 C = F(q); float p = C.r, u = C.g; int g = int(C.b + 0.5);
+  vec3 c3;
+  if (view == 0) {
+    float c = cfac*(1.0 + (1.0 - k)*u)*((1.0 + k)*0.5 - (1.0 - k)*0.5*p);
+    c3 = turbo((log(max(c, 1e-4)) - lo)/(hi - lo));   // log scale: k*C0 (blue) ... C0 (green) ... C0/k (red)
+    if (abs(p) < 0.3) c3 *= 0.55;                       // thin dark line marks the solid/liquid interface
+  } else {
+    vec3 base = g > 0 ? col[g] : vec3(0.5);
+    c3 = mix(vec3(0.07, 0.09, 0.12), base, clamp((p + 1.0)*0.5, 0.0, 1.0));
+  }
+  o = vec4(c3, 1.0);
+}`;
+
+  // ---------- state ----------
+  let canvas2d = null, glc = null, gl = null, gpu = false, progs = {}, tex = [], fbs = [], vao = null;
+  let cpu = null;   // CPU arrays
+  const px1 = new Float32Array(4); let rtex = null;
+  const st = { ready: false, lost: false, nx: 0, ny: 0, t: 0, steps: 0, zOff: 0, done: false, cfg: null, stats: null, view: 0 };
+
+  function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+  function program(fs) {
+    const p = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.bindAttribLocation(p, 0, 'p'); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); const nm = info.name.replace('[0]', ''); u[nm] = gl.getUniformLocation(p, info.name); }
+    return { p, u };
+  }
+  function buildGL() {
+    progs.phi = program(PHI); progs.u = program(UEQ); progs.shift = program(SHIFT); progs.show = program(SHOW); progs.reduce = program(REDUCE);
+    vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  }
+  function init(glCanvas, cpuCanvas) {
+    glc = glCanvas; canvas2d = cpuCanvas;
+    try {
+      gl = glc.getContext('webgl2', { preserveDrawingBuffer: true, antialias: false });
+      if (!gl || !gl.getExtension('EXT_color_buffer_float')) throw new Error('no float');
+      buildGL();
+      gpu = true;
+      // the browser can reset the graphics context under heavy load: rebuild and restart the run instead of freezing
+      glc.addEventListener('webglcontextlost', e => { e.preventDefault(); st.lost = true; });
+      glc.addEventListener('webglcontextrestored', () => { try { gl.getExtension('EXT_color_buffer_float'); tex = []; fbs = []; rtex = null; buildGL(); st.lost = false; if (st.cfg) setup(st.cfg); } catch (err) { console.error(err); } });
+    } catch (e) { gpu = false; gl = null; console.warn('Phase-field: GPU unavailable, using CPU', e); }
+    return gpu;
+  }
+  function makeTex(nx, ny, data) {
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, nx, ny, 0, gl.RGBA, gl.FLOAT, data);
+    for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+    const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    return [t, f];
+  }
+
+  // ---------- physical scaling ----------
+  // cfg: {mode:'iso'|'ds', alloy (CORE.alloyProps result), dT (iso), Vt, lT (ds, model units), eps, noise, grains:[theta..], nuclei, seed}
+  function scales(cfg) {
+    const a = cfg.alloy, m = Math.abs(a.m), k = a.k;
+    const dT0 = m * (1 - k) * a.C0 / k, d0 = a.Gam / dT0, Om = 0;
+    const lam = cfg.lam || 8, W = lam * d0 / A1, tau0 = A2 * lam * W * W / a.D;
+    return { d0, W, tau0, Om, dT0 };
+  }
+  function omegaToDT(a, Om) { const m = Math.abs(a.m); return Om * m * (1 - a.k) * a.C0 / (1 - Om * (1 - a.k)); }
+
+  // ---------- setup ----------
+  function setup(cfg) {
+    LAM = cfg.lam || 8; DT_ = A2 * LAM; DT = Math.min(0.045, 0.8 * DX * DX / (4 * DT_));
+    st.cfg = cfg; st.t = 0; st.steps = 0; st.zOff = 0; st.done = false; st.stats = null; st.history = []; st.topT = undefined; st.fsRef = undefined; st.fsRate = undefined;
+    const big = gpu;
+    const nx = cfg.nx || (cfg.mode === 'iso' ? (big ? 512 : 200) : (big ? 320 : 128));
+    const ny = cfg.ny || (cfg.mode === 'iso' ? (big ? 512 : 200) : (big ? 640 : 256));
+    st.nx = nx; st.ny = ny;
+    const sc = st.sc = scales(cfg);
+    st.k = cfg.alloy.k;
+    let rs = (cfg.seed >>> 0) || 1; const rnd = () => { rs = (rs * 16807) % 2147483647; return rs / 2147483647; };
+    st.cosT = new Float32Array(MAXG); st.sinT = new Float32Array(MAXG); st.cosT[0] = 1;
+    cfg.grains.forEach((th, i) => { st.cosT[i + 1] = Math.cos(th * Math.PI / 180); st.sinT[i + 1] = Math.sin(th * Math.PI / 180); });
+    const data = new Float32Array(nx * ny * 4);
+    if (cfg.mode === 'iso') {
+      const n = cfg.grains.length, pos = [];
+      if (n === 1) pos.push([nx / 2, ny / 2]);
+      else { let dmin = 0.9 * nx / Math.sqrt(n), tries = 0; while (pos.length < n) { tries++; if (tries % 400 === 0) dmin *= 0.85; const x = nx * (0.03 + 0.94 * rnd()), y = ny * (0.03 + 0.94 * rnd()); if (pos.every(p => Math.hypot(p[0] - x, p[1] - y) > dmin)) pos.push([x, y]); } }
+      st.seeds = pos;
+      const r0 = 4;
+      for (let c = 0; c < nx * ny * 4; c += 4) { data[c] = -1; data[c + 1] = -1; }
+      const rb = Math.ceil((r0 + 8) / DX);
+      pos.forEach(([x, y], s) => {
+        for (let j = Math.max(0, Math.floor(y - rb)); j <= Math.min(ny - 1, Math.ceil(y + rb)); j++) for (let i = Math.max(0, Math.floor(x - rb)); i <= Math.min(nx - 1, Math.ceil(x + rb)); i++) {
+          const c = 4 * (j * nx + i), v = -Math.tanh((Math.hypot(i - x, j - y) * DX - r0) / Math.SQRT2);
+          if (v > data[c]) { data[c] = v; if (v > -0.99) data[c + 2] = s + 1; }
+        }
+      });
+      st.cfac = 1 / st.k; st.lo = Math.log(st.k * 0.9); st.hi = Math.log(1 / st.k);
+    } else {
+      // fixed window: seed crystals sit on the chilled wall (bottom), which starts at undercooling Om0 (fraction of the freezing range)
+      const ng = cfg.grains.length, ns = Math.max(ng, cfg.nSeeds || ng), Om0 = cfg.Om0 ?? 0.3, r0 = 6;
+      st.z0 = -(1 - Om0) * cfg.lT; st.zi0 = 0;          // position of the solidus isotherm (reference T0) at t = 0
+      const sx = [], sg = [];
+      for (let q = 0; q < ns; q++) { const x = (q + 0.5) / ns * nx + (rnd() - 0.5) * 4; sx.push(x); sg.push(1 + Math.min(ng - 1, Math.floor((q + 0.5) / ns * ng))); }
+      st.seedsDS = ns;
+      for (let c = 0; c < nx * ny * 4; c += 4) { data[c] = -1; data[c + 1] = -1; }
+      for (let j = 0; j < Math.min(ny, Math.ceil((r0 + 8) / DX)); j++) for (let i = 0; i < nx; i++) {
+        const c = 4 * (j * nx + i); let ph = -1, g = 0;
+        for (let q = 0; q < ns; q++) { const v = -Math.tanh((Math.hypot(i - sx[q], j) * DX - r0) / Math.SQRT2); if (v > ph) { ph = v; if (v > -0.99) g = sg[q]; } }
+        data[c] = ph; data[c + 1] = -1; data[c + 2] = g; data[c + 3] = 0;
+      }
+      st.cfac = 1 / st.k; st.lo = Math.log(st.k * 0.9); st.hi = Math.log(1 / st.k);
+    }
+    // grain colours
+    st.col = new Float32Array(MAXG * 3);
+    cfg.grains.forEach((th, i) => { st.col.set(turboJS((th + 45) / 90), 3 * (i + 1)); });
+    if (gpu) {
+      for (const t of tex) gl.deleteTexture(t); for (const f of fbs) gl.deleteFramebuffer(f);
+      const A = makeTex(nx, ny, data), B = makeTex(nx, ny, null);
+      tex = [A[0], B[0]]; fbs = [A[1], B[1]];
+      glc.width = nx; glc.height = ny;
+      // measurements read a reduced copy (about 400 cells across) instead of the full float texture
+      st.rf = Math.max(1, Math.ceil(Math.max(nx, ny) / 400)); st.rnx = Math.floor(nx / st.rf); st.rny = Math.floor(ny / st.rf);
+      if (rtex) { gl.deleteTexture(rtex[0]); gl.deleteFramebuffer(rtex[1]); }
+      rtex = makeTex(st.rnx, st.rny, null);
+      st.buf = new Float32Array(st.rnx * st.rny * 4); st.rowBuf = new Float32Array(nx * 4);
+    } else {
+      st.rf = 1; st.rnx = nx; st.rny = ny;
+      cpu = { a: data, b: new Float32Array(nx * ny * 4) };
+      canvas2d.width = nx; canvas2d.height = ny;
+      st.img = canvas2d.getContext('2d').createImageData(nx, ny);
+      st.buf = cpu.a;
+    }
+    st.ready = true;
+    render(); stats();
+  }
+  function hsl(h, s, l) { s /= 100; l /= 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l); const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [255 * f(0), 255 * f(8), 255 * f(4)]; }
+
+  // ---------- stepping ----------
+  function maybeShift() {
+    if (st.cfg.mode !== 'ds' || !st.cfg.shift) return;   // fixed window by default
+    if (st.steps % 40 !== 0) return;
+    const r = Math.floor(0.7 * st.ny);                          // shift when dendrite tips reach 70 % of the height
+    let hit = false;
+    if (gpu) { gl.bindFramebuffer(gl.FRAMEBUFFER, fbs[0]); gl.readPixels(0, r, st.nx, 1, gl.RGBA, gl.FLOAT, st.rowBuf); for (let i = 0; i < st.nx; i++) if (st.rowBuf[4 * i] > -0.5) { hit = true; break; } }
+    else { const a = cpu.a; for (let i = 0; i < st.nx; i++) if (a[4 * (r * st.nx + i)] > -0.5) { hit = true; break; } }
+    if (hit) {
+      const sh = Math.round(0.25 * st.ny);
+      if (gpu) {
+        const P = progs.shift; gl.useProgram(P.p); gl.viewport(0, 0, st.nx, st.ny);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbs[1]); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex[0]);
+        gl.uniform1i(P.u.S, 0); gl.uniform2i(P.u.size, st.nx, st.ny); gl.uniform1i(P.u.sh, sh);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        [tex[0], tex[1]] = [tex[1], tex[0]]; [fbs[0], fbs[1]] = [fbs[1], fbs[0]];
+      } else {
+        const a = cpu.a, nx = st.nx, ny = st.ny;
+        a.copyWithin(0, sh * nx * 4);
+        for (let c = (ny - sh) * nx; c < nx * ny; c++) { a[4 * c] = -1; a[4 * c + 1] = -1; a[4 * c + 2] = 0; a[4 * c + 3] = 0; }
+      }
+      st.zOff += sh * DX;
+    }
+  }
+  function step(n) {
+    if (!st.ready || st.done || st.lost) return;
+    const cfg = st.cfg;
+    if (gpu) {
+      gl.viewport(0, 0, st.nx, st.ny); gl.activeTexture(gl.TEXTURE0);
+      const Pp = progs.phi, Pu = progs.u;
+      for (let s = 0; s < n; s++) {
+        maybeShift();
+        gl.useProgram(Pp.p); gl.bindFramebuffer(gl.FRAMEBUFFER, fbs[1]); gl.bindTexture(gl.TEXTURE_2D, tex[0]);
+        gl.uniform1i(Pp.u.S, 0); gl.uniform2i(Pp.u.size, st.nx, st.ny);
+        gl.uniform1f(Pp.u.dx, DX); gl.uniform1f(Pp.u.dt, DT); gl.uniform1f(Pp.u.eps, cfg.eps); gl.uniform1f(Pp.u.lam, LAM); gl.uniform1f(Pp.u.k, st.k);
+        gl.uniform1f(Pp.u.t, st.t); gl.uniform1f(Pp.u.V, cfg.Vt || 0); gl.uniform1f(Pp.u.lT, cfg.lT || 1); gl.uniform1f(Pp.u.z0, st.z0 || 0); gl.uniform1f(Pp.u.zOff, st.zOff);
+        gl.uniform1f(Pp.u.noise, cfg.noise); gl.uniform1f(Pp.u.seed, (st.steps % 9973) + 0.5); gl.uniform1i(Pp.u.ds, cfg.mode === 'ds' ? 1 : 0); gl.uniform1f(Pp.u.zt0, cfg.zt0 || 0); gl.uniform1f(Pp.u.rate, cfg.rate || 0);
+        gl.uniform1fv(Pp.u.cT, st.cosT); gl.uniform1fv(Pp.u.sT, st.sinT);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.useProgram(Pu.p); gl.bindFramebuffer(gl.FRAMEBUFFER, fbs[0]); gl.bindTexture(gl.TEXTURE_2D, tex[1]);
+        gl.uniform1i(Pu.u.S, 0); gl.uniform2i(Pu.u.size, st.nx, st.ny);
+        gl.uniform1f(Pu.u.dx, DX); gl.uniform1f(Pu.u.dt, DT); gl.uniform1f(Pu.u.k, st.k); gl.uniform1f(Pu.u.D, DT_);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        st.t += DT; st.steps++;
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbs[0]); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, px1);   // wait for the GPU so callers can time the work
+    } else {
+      for (let s = 0; s < n; s++) { maybeShift(); cpuStep(); st.t += DT; st.steps++; }
+    }
+  }
+  // CPU version of the same two passes
+  let seedC = 12345; const rndC = () => { seedC = (seedC * 16807) % 2147483647; return seedC / 2147483647; };
+  function cpuStep() {
+    const nx = st.nx, ny = st.ny, A = cpu.a, B = cpu.b, k = st.k, eps = st.cfg.eps, cfg = st.cfg, ds = cfg.mode === 'ds';
+    const cT = st.cosT, sT = st.sinT;
+    const I = (i, j) => 4 * ((j < 0 ? 0 : j >= ny ? ny - 1 : j) * nx + (i < 0 ? 0 : i >= nx ? nx - 1 : i));
+    let ra = 1, rb = 0;
+    const an = (gx, gy, g) => { const g2 = gx * gx + gy * gy; if (g2 < 1e-12) { ra = 1; rb = 0; return; } const iv = 1 / Math.sqrt(g2), nxx = gx * iv, nyy = gy * iv, c = nxx * cT[g] + nyy * sT[g], s = -nxx * sT[g] + nyy * cT[g], c2 = c * c, s2 = s * s; ra = 1 + eps * (c2 * c2 - 6 * c2 * s2 + s2 * s2); rb = -16 * eps * c * s * (c2 - s2); };
+    const sq = Math.sqrt(DT);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = 4 * (j * nx + i), p = A[c];
+      const e = I(i + 1, j), w = I(i - 1, j), nn = I(i, j + 1), s = I(i, j - 1);
+      const pE = A[e], pW = A[w], pN = A[nn], pS = A[s], pNE = A[I(i + 1, j + 1)], pNW = A[I(i - 1, j + 1)], pSE = A[I(i + 1, j - 1)], pSW = A[I(i - 1, j - 1)];
+      const gC = A[c + 2] | 0, gE = A[e + 2] | 0, gW = A[w + 2] | 0, gN = A[nn + 2] | 0, gS = A[s + 2] | 0;
+      let gx, gy;
+      gx = (pE - p) / DX; gy = (pN + pNE - pS - pSE) / (4 * DX); an(gx, gy, pE > p ? gE : gC); const JxE = ra * ra * gx - ra * rb * gy;
+      gx = (p - pW) / DX; gy = (pN + pNW - pS - pSW) / (4 * DX); an(gx, gy, pW > p ? gW : gC); const JxW = ra * ra * gx - ra * rb * gy;
+      gy = (pN - p) / DX; gx = (pE + pNE - pW - pNW) / (4 * DX); an(gx, gy, pN > p ? gN : gC); const JyN = ra * ra * gy + ra * rb * gx;
+      gy = (p - pS) / DX; gx = (pE + pSE - pW - pSW) / (4 * DX); an(gx, gy, pS > p ? gS : gC); const JyS = ra * ra * gy + ra * rb * gx;
+      const dv = (JxE - JxW + JyN - JyS) / DX;
+      let mx = p, g = gC;
+      if (pE > mx) { mx = pE; g = gE; } if (pW > mx) { mx = pW; g = gW; } if (pN > mx) { mx = pN; g = gN; } if (pS > mx) { mx = pS; g = gS; }
+      const gNew = p < 0 && mx > p && g > 0 ? g : gC;
+      an((pE - pW) / (2 * DX), (pN - pS) / (2 * DX), gNew); const ac = ra;
+      const u = A[c + 1]; let tau, drive;
+      const zt = ds ? (j * DX + st.zOff - st.z0 - cfg.Vt * st.t) / cfg.lT : cfg.zt0 - cfg.rate * st.t;
+      tau = ac * ac * Math.max(0.15, 1 - (1 - k) * zt); drive = u + zt;
+      const qq = 1 - p * p;
+      let dp = (dv + p - p * p * p - LAM * qq * qq * drive) / tau + cfg.noise * qq * (rndC() - 0.5) / sq;
+      B[c] = p + DT * dp; B[c + 1] = u; B[c + 2] = gNew; B[c + 3] = dp;
+    }
+    const a8 = 0.35355339, D = DT_;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = 4 * (j * nx + i), p = B[c], u = B[c + 1], dp = B[c + 3];
+      const e = I(i + 1, j), w = I(i - 1, j), nn = I(i, j + 1), s = I(i, j - 1);
+      const pNE = B[I(i + 1, j + 1)], pNW = B[I(i - 1, j + 1)], pSE = B[I(i + 1, j - 1)], pSW = B[I(i - 1, j - 1)];
+      let fl = 0, gn, gt, m, nv;
+      gn = (B[e] - p) / DX; gt = (B[nn] + pNE - B[s] - pSE) / (4 * DX); m = Math.hypot(gn, gt); nv = m > 1e-8 ? gn / m : 0;
+      fl += D * (2 - p - B[e]) * 0.25 * (B[e + 1] - u) / DX + a8 * (1 + (1 - k) * 0.5 * (u + B[e + 1])) * 0.5 * (dp + B[e + 3]) * nv;
+      gn = (p - B[w]) / DX; gt = (B[nn] + pNW - B[s] - pSW) / (4 * DX); m = Math.hypot(gn, gt); nv = m > 1e-8 ? gn / m : 0;
+      fl += D * (2 - p - B[w]) * 0.25 * (B[w + 1] - u) / DX - a8 * (1 + (1 - k) * 0.5 * (u + B[w + 1])) * 0.5 * (dp + B[w + 3]) * nv;
+      gn = (B[nn] - p) / DX; gt = (B[e] + pNE - B[w] - pNW) / (4 * DX); m = Math.hypot(gn, gt); nv = m > 1e-8 ? gn / m : 0;
+      fl += D * (2 - p - B[nn]) * 0.25 * (B[nn + 1] - u) / DX + a8 * (1 + (1 - k) * 0.5 * (u + B[nn + 1])) * 0.5 * (dp + B[nn + 3]) * nv;
+      gn = (p - B[s]) / DX; gt = (B[e] + pSE - B[w] - pSW) / (4 * DX); m = Math.hypot(gn, gt); nv = m > 1e-8 ? gn / m : 0;
+      fl += D * (2 - p - B[s]) * 0.25 * (B[s + 1] - u) / DX - a8 * (1 + (1 - k) * 0.5 * (u + B[s + 1])) * 0.5 * (dp + B[s + 3]) * nv;
+      fl /= DX;
+      A[c] = p; A[c + 1] = u + DT * (fl + 0.5 * (1 + (1 - k) * u) * dp) / ((1 + k) * 0.5 - (1 - k) * 0.5 * p); A[c + 2] = B[c + 2]; A[c + 3] = dp;
+    }
+  }
+
+  // ---------- display ----------
+  function render() {
+    if (!st.ready || st.lost) return;
+    if (gpu) {
+      const P = progs.show; gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, st.nx, st.ny);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex[0]);
+      gl.uniform1i(P.u.S, 0); gl.uniform2i(P.u.size, st.nx, st.ny); gl.uniform1i(P.u.view, st.view);
+      gl.uniform1f(P.u.k, st.k); gl.uniform1f(P.u.cfac, st.cfac); gl.uniform1f(P.u.lo, st.lo); gl.uniform1f(P.u.hi, st.hi);
+      gl.uniform3fv(P.u.col, st.col);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    } else {
+      const a = cpu.a, d = st.img.data, nx = st.nx, ny = st.ny, k = st.k;
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        const c = 4 * (j * nx + i), o = 4 * ((ny - 1 - j) * nx + i), p = a[c], u = a[c + 1], g = a[c + 2] | 0;
+        let r;
+        if (st.view === 0) { const cc = st.cfac * (1 + (1 - k) * u) * ((1 + k) * 0.5 - (1 - k) * 0.5 * p); r = turboJS((Math.log(Math.max(cc, 1e-4)) - st.lo) / (st.hi - st.lo)); if (Math.abs(p) < 0.3) r = r.map(v => v * 0.55); }
+        else { const w = Math.max(0, Math.min(1, (p + 1) / 2)), b = g ? [st.col[3 * g], st.col[3 * g + 1], st.col[3 * g + 2]] : [0.5, 0.5, 0.5]; r = [0.07 + (b[0] - 0.07) * w, 0.09 + (b[1] - 0.09) * w, 0.12 + (b[2] - 0.12) * w]; }
+        d[o] = r[0] * 255; d[o + 1] = r[1] * 255; d[o + 2] = r[2] * 255; d[o + 3] = 255;
+      }
+      canvas2d.getContext('2d').putImageData(st.img, 0, 0);
+    }
+  }
+
+  // ---------- measurements ----------
+  function read() {
+    if (!gpu) return cpu.a;
+    const P = progs.reduce; gl.useProgram(P.p); gl.viewport(0, 0, st.rnx, st.rny);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, rtex[1]); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex[0]);
+    gl.uniform1i(P.u.S, 0); gl.uniform2i(P.u.size, st.nx, st.ny); gl.uniform1i(P.u.f, st.rf);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.readPixels(0, 0, st.rnx, st.rny, gl.RGBA, gl.FLOAT, st.buf);
+    return st.buf;
+  }
+  function stats() {
+    if (!st.ready) return null;
+    if (st.lost) return st.stats;
+    const a = read(), f = st.rf, nx = st.rnx, ny = st.rny, k = st.k, cfg = st.cfg;   // reduced grid: cell (i, j) is full-grid cell (i f, j f)
+    let solid = 0, cmin = Infinity, cmax = -Infinity, topR = -1, rmax = 0;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = 4 * (j * nx + i), p = a[c];
+      if (p > 0) {
+        solid++;
+        if (j > topR) topR = j;
+        if (cfg.mode === 'iso') {
+          const g0 = a[c + 2] | 0; if (g0 > 0 && st.seeds[g0 - 1]) { const [x, y] = st.seeds[g0 - 1]; const r = Math.hypot(i * f - x, j * f - y); if (r > rmax) rmax = r; }
+        }
+        if (p > 0.9) { const cc = st.cfac * (1 + (1 - k) * a[c + 1]) * ((1 + k) * 0.5 - (1 - k) * 0.5 * p); if (cc < cmin) cmin = cc; if (cc > cmax) cmax = cc; }
+      }
+    }
+    const s = { fs: solid / (nx * ny), cmin, cmax, t: st.t };
+    const W = st.sc.W, tau0 = st.sc.tau0, top = topR < 0 ? 0 : topR * f;
+    if (cfg.mode === 'iso') {
+      s.tipR = rmax * DX;   // model units
+      st.history.push([st.t, s.tipR]); if (st.history.length > 40) st.history.shift();
+      if (st.history.length >= 3) { const h0 = st.history[Math.max(0, st.history.length - 6)], h1 = st.history[st.history.length - 1]; s.Vtip = h1[0] > h0[0] ? (h1[1] - h0[1]) / (h1[0] - h0[0]) * W / tau0 : NaN; }
+      if (s.fs > 0.9 || cfg.zt0 - cfg.rate * st.t < 0.2) st.done = true;
+      s.size = 2 * s.tipR * W;
+    } else {
+      s.grown = (top * DX + st.zOff - st.zi0) * W;
+      // count dendrite trunks and surviving crystals in a row ~25 W behind the tips
+      const row = Math.max(0, Math.min(ny - 1, topR - Math.max(1, Math.round(25 / DX / f))));
+      let segs = 0, prev = false; const gcount = {};
+      for (let i = 0; i < nx; i++) { const c = 4 * (row * nx + i), sol = a[c] > 0; if (sol && !prev) segs++; if (sol) { const g = a[c + 2] | 0; gcount[g] = (gcount[g] || 0) + 1; } prev = sol; }
+      s.trunks = segs; s.spacing = segs ? st.nx * DX / segs * W : NaN; s.grainShare = gcount; s.grainsAtFront = Object.keys(gcount).filter(g => +g > 0).length;
+      // The first tip reaching the top is not the end: keep going until the rest of the window has filled in,
+      // i.e. the solid fraction has almost stopped rising (or a long time has passed since the tips arrived).
+      if (top >= st.ny - 6 - f && st.topT === undefined) st.topT = st.t;
+      if (st.fsRef === undefined) st.fsRef = [st.t, s.fs];
+      if (st.t - st.fsRef[0] >= 6) { st.fsRate = (s.fs - st.fsRef[1]) / (st.t - st.fsRef[0]); st.fsRef = [st.t, s.fs]; }
+      if (st.topT !== undefined && st.t - st.topT > 12 && ((st.fsRate !== undefined && st.fsRate < 3e-4) || st.t > 2 * st.topT + 30)) st.done = true;
+    }
+    st.stats = s;
+    return s;
+  }
+  return { init, setup, step, render, stats, scales, omegaToDT, rampJS, turboJS, st, get gpu() { return gpu; }, LAM, DX, DT, A1, A2 };
+})();
+
+// ===== UI =====
+(function () {
+  'use strict';
+  const C = CORE, PR = PRESETS, P = C.P, S = C.S;
+  const { NX, NY, N, DXmm, METAL, AIR, SAND, DIE, CHILL, SHELL, INSUL, ORIGIN } = C;
+  const $ = id => document.getElementById(id);
+  const ui = { view: 'grains', running: false, speed: 'normal', tool: 'metal', shape: 'brush', brush: 6, seedTheta: 0, preset: null, needReset: false, lastStats: 0, frame: 0, undo: [], log: [], runLogged: false, stats: null };
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 2) => (v === undefined || v === null || !isFinite(v)) ? '–' : (Math.abs(v) >= 1000 ? v.toFixed(0) : Math.abs(v) >= 100 ? v.toFixed(Math.max(0, d - 2)) : Math.abs(v) >= 10 ? v.toFixed(Math.max(0, d - 1)) : v.toFixed(d));
+  const sig = (v, s = 3) => (!isFinite(v) ? '–' : Number(v.toPrecision(s)).toString());
+
+  // ---------- colours ----------
+  function hsl(h, s, l) { s /= 100; l /= 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l); const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))]; }
+  const MATCOL = { 0: [11, 16, 20], 2: [201, 182, 142], 3: [122, 133, 145], 4: [196, 107, 44], 5: [214, 210, 202], 6: [236, 228, 196] };
+  const ORIGIN_INFO = [
+    null,
+    { name: 'Mould wall', t: 0.12 }, { name: 'Chill', t: 0.27 }, { name: 'Native nucleus (bulk)', t: 0.5 }, { name: 'Seed crystal', t: 0.66, hide: true },
+    { name: 'Stirring fragment', t: 0.78 }, { name: 'Other', t: 0.98, hide: true }, { name: 'Grain-refiner particle', t: 0.9 },
+  ];
+  // one colour map everywhere: the same blue-green-red (turbo) scale as the dendrite composition maps
+  const turbo = (t, f = 1) => DENDRITE.turboJS(t).map(v => Math.round(255 * v * f));
+  let colCap = 0, colRand, colOri, colOrg;
+  function ensureColors(n) {
+    if (n <= colCap) return;
+    let cap = Math.max(1024, colCap); while (cap < n) cap *= 2;
+    const r = new Uint8Array(cap * 3), o = new Uint8Array(cap * 3), g = new Uint8Array(cap * 3);
+    if (colCap) { r.set(colRand); o.set(colOri); g.set(colOrg); }
+    colRand = r; colOri = o; colOrg = g;
+    for (let i = colCap; i < cap; i++) colRand[3 * i] = 255; // mark as unset
+    colCap = cap; colDone = Math.min(colDone, colDone);
+  }
+  let colDone = 1;
+  function updateColors() {
+    const th = C.gTheta, og = C.gOrigin, n = th.length;
+    ensureColors(n + 1);
+    for (let g = colDone; g < n; g++) {
+      const jit = (g * 7919) % 23;
+      const f = 0.8 + 0.2 * (jit / 22);
+      let c = turbo(0.04 + 0.92 * ((g * 0.6180339887) % 1), f);
+      colRand.set(c, 3 * g);
+      c = turbo((th[g] + 45) / 90, 0.86 + 0.14 * (jit / 22));
+      colOri.set(c, 3 * g);
+      c = turbo((ORIGIN_INFO[og[g]] || { t: 0.5 }).t, f);
+      colOrg.set(c, 3 * g);
+    }
+    colDone = n;
+  }
+  function tempColor(t) { return DENDRITE.turboJS(t).map(v => 255 * v); }
+
+  // ---------- canvas ----------
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const off = document.createElement('canvas'); off.width = NX; off.height = NY;
+  const octx = off.getContext('2d'); const img = octx.createImageData(NX, NY); const px = img.data;
+  const SC = cv.width / NX;
+
+  function render() {
+    updateColors();
+    const a = S.a, Tl = a.Tl, Te = a.Te, view = ui.view, mats = C.mats, grainOf = C.grainOf, caT = C.caT, inoc = C.inoc, seedMap = C.seedMap;
+    const casting = P.mode === 'casting';
+    const Tlo = Te - 25, Thi = casting ? Tl + Math.max(10, P.superheat) : Tl + 25;          // metal scale: freezing range
+    const Mlo = Math.min(P.preheat, P.chillT), Mhi = Tl;                                    // mould scale
+    const Tthermal = C.T, tOf = C.tOf, tType = C.tType;
+    for (let c = 0; c < N; c++) {
+      const m = mats[c], q = 4 * c; let r, g, b;
+      if (m !== METAL) {
+        if (view === 'temp' && casting && m !== AIR) { const col = tempColor((Tthermal[tOf[c]] - Mlo) / (Mhi - Mlo)); r = col[0] * 0.55 + MATCOL[m][0] * 0.25; g = col[1] * 0.55 + MATCOL[m][1] * 0.25; b = col[2] * 0.55 + MATCOL[m][2] * 0.25; }
+        else { const mc = MATCOL[m]; r = mc[0]; g = mc[1]; b = mc[2]; }
+      } else {
+        const T = caT[c], gr = grainOf[c];
+        if (view === 'temp') {
+          const col = tempColor((T - Tlo) / (Thi - Tlo)); r = col[0]; g = col[1]; b = col[2];
+          if (gr) { r *= 0.85; g *= 0.85; b *= 0.85; }
+        } else if (!gr) {
+          if (seedMap[c] && S.t === 0) { r = 230; g = 190; b = 60; }
+          else {
+            const dT = Tl - T;
+            if (dT > 0) { const w = Math.min(1, dT / 6); r = 34 + (60 - 34) * w; g = 46 + (175 - 46) * w; b = 60 + (190 - 60) * w; }
+            else { const w = Math.min(1, -dT / Math.max(5, P.mode === 'casting' ? P.superheat : 25)); r = 44 - 14 * w; g = 56 - 18 * w; b = 72 - 20 * w; }
+            if (inoc[c] || P.inocAll) { if (((c % NX) + ((c / NX) | 0)) % 4 === 0) { r += 30; g += 55; b += 30; } }
+          }
+        } else {
+          const arr = view === 'orient' ? colOri : view === 'origin' ? colOrg : colRand;
+          r = arr[3 * gr]; g = arr[3 * gr + 1]; b = arr[3 * gr + 2];
+          if (T > Te + 0.3) { r = r * 0.62 + 20; g = g * 0.62 + 26; b = b * 0.62 + 34; }   // still mushy
+        }
+      }
+      px[q] = r; px[q + 1] = g; px[q + 2] = b; px[q + 3] = 255;
+    }
+    // liquidus contour
+    if (view !== 'temp' || true) {
+      for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
+        const c = j * NX + i; if (mats[c] !== METAL) continue;
+        const T = caT[c]; if (T < Tl) continue;
+        if ((mats[c + 1] === METAL && caT[c + 1] < Tl) || (mats[c - 1] === METAL && caT[c - 1] < Tl) || (mats[c + NX] === METAL && caT[c + NX] < Tl) || (mats[c - NX] === METAL && caT[c - NX] < Tl)) {
+          if (view === 'temp' || !grainOf[c]) { const q = 4 * c; px[q] = 240; px[q + 1] = 250; px[q + 2] = 255; }
+        }
+      }
+    }
+    octx.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(off, 0, 0, cv.width, cv.height);
+    drawOverlay();
+  }
+
+  function drawOverlay() {
+    const W = cv.width, H = cv.height;
+    ctx.save();
+    ctx.font = '600 13px system-ui, sans-serif';
+    // scale bar
+    const L = 10 / DXmm * SC; ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(W - L - 30, H - 38, L + 20, 28);
+    ctx.fillStyle = '#fff'; ctx.fillRect(W - L - 20, H - 18, L, 4); ctx.fillText('10 mm', W - L / 2 - 40, H - 23);
+    if (P.mode === 'ds') {
+      const phi = P.tilt * Math.PI / 180, dxv = Math.sin(phi), dzv = P.dir === 'up' ? Math.cos(phi) : -Math.cos(phi);
+      const line = (s, color, dash, label) => {
+        // points where x*dx + z*dz = s (x,z metres from bottom-left)
+        const pts = [];
+        const Wm = NX * C.DX, Hm = NY * C.DX;
+        if (Math.abs(dzv) > 1e-6) { for (const x of [0, Wm]) { const z = (s - x * dxv) / dzv; pts.push([x / C.DX * SC, H - z / C.DX * SC]); } }
+        if (pts.length < 2) return;
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[1][0], pts[1][1]); ctx.stroke();
+        ctx.setLineDash([]);
+        const ly = Math.min(H - 50, Math.max(18, pts[1][1] - 8)), tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(W - tw - 22, ly - 14, tw + 12, 19);
+        ctx.fillStyle = color; ctx.fillText(label, W - tw - 16, ly);
+      };
+      if (S.sL !== undefined) {
+        line(S.sL, 'rgba(120,235,245,.95)', [], 'T_L liquidus');
+        const se = S.sL - (S.a.Tl - S.a.Te) / Math.max(S.Gt, 1);
+        line(se, 'rgba(255,190,120,.9)', [8, 6], 'T_E fully solid');
+      }
+      // heat-flow arrow
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(10, 10, 128, 66);
+      ctx.strokeStyle = '#fff'; ctx.fillStyle = '#fff'; ctx.lineWidth = 2;
+      const ax = 40, ay = 43, len = 22;
+      const ex = ax + dxv * len, ey = ay - dzv * len;
+      ctx.beginPath(); ctx.moveTo(ax - dxv * len, ay + dzv * len); ctx.lineTo(ex, ey); ctx.stroke();
+      const ang = Math.atan2(ey - ay, ex - ax); ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 8 * Math.cos(ang - 0.5), ey - 8 * Math.sin(ang - 0.5)); ctx.lineTo(ex - 8 * Math.cos(ang + 0.5), ey - 8 * Math.sin(ang + 0.5)); ctx.fill();
+      ctx.font = '12px system-ui, sans-serif'; ctx.fillText('growth', 68, 34); ctx.fillText('direction', 68, 52);
+    }
+    // editor preview
+    if (ui.hover && !ui.running) {
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+      if (ui.shape === 'rect' && ui.dragStart) {
+        const [i0, j0] = ui.dragStart, [i1, j1] = ui.hover;
+        ctx.strokeRect(Math.min(i0, i1) * SC, Math.min(j0, j1) * SC, (Math.abs(i1 - i0) + 1) * SC, (Math.abs(j1 - j0) + 1) * SC);
+      } else if (ui.shape === 'brush') {
+        ctx.beginPath(); ctx.arc((ui.hover[0] + 0.5) * SC, (ui.hover[1] + 0.5) * SC, Math.max(0.5, ui.brush - 0.5) * SC, 0, 2 * Math.PI); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+  function legend() {
+    const el = $('legend'); let h = '';
+    if (ui.pf) { el.innerHTML = pfLegendHTML(); return; }
+    const sw = (rgb, label) => `<span><i style="background:rgb(${rgb.join(',')})"></i>${label}</span>`;
+    if (ui.view === 'grains') h += '<span>Each colour is one grain. Dimmed = still mushy (partly liquid).</span>';
+    if (ui.view === 'orient') h += `<span>Orientation θ of &lt;100&gt; from the heat-flow axis: −45° <span class="bar" style="background:linear-gradient(90deg,${Array.from({ length: 11 }, (_, i) => `rgb(${turbo(i / 10).join(',')})`).join(',')})"></span> +45° (0° is green)</span>`;
+    if (ui.view === 'origin') for (let o = 1; o < ORIGIN_INFO.length; o++) if (!ORIGIN_INFO[o].hide) h += sw(turbo(ORIGIN_INFO[o].t), ORIGIN_INFO[o].name);
+    if (ui.view === 'temp') h += `<span>Temperature: cold <span class="bar" style="background:linear-gradient(90deg,${Array.from({ length: 11 }, (_, i) => `rgb(${turbo(i / 10).join(',')})`).join(',')})"></span> hot. Melt scale: T<sub>E</sub> − 25 K to T<sub>L</sub> + superheat; the mould (faded) has its own scale up to T<sub>L</sub>. White line = liquidus T<sub>L</sub>.</span>`;
+    if (ui.view !== 'temp') h += sw([60, 175, 190], 'Undercooled liquid') + sw([34, 46, 60], 'Liquid above T<sub>L</sub>');
+    h += sw(MATCOL[SAND], 'Sand') + sw(MATCOL[DIE], 'Steel die') + sw(MATCOL[CHILL], 'Cu chill') + sw(MATCOL[SHELL], 'Ceramic shell') + sw(MATCOL[INSUL], 'Insulation');
+    el.innerHTML = h;
+  }
+
+  // ---------- controls ----------
+  function control(host, o) {
+    const wrap = document.createElement('div'); wrap.className = 'ctl';
+    const id = 'c_' + o.id;
+    wrap.innerHTML = `<label for="${id}">${o.label}${o.unit ? ` <small>(${o.unit})</small>` : ''}</label><input type="number" id="${id}" step="any" min="${o.min}" max="${o.max}"><input type="range" id="${id}_r" min="0" max="1000" step="1" aria-label="${o.label.replace(/<[^>]+>/g, '')}">`;
+    host.appendChild(wrap);
+    const num = wrap.querySelector('input[type=number]'), rng = wrap.querySelector('input[type=range]');
+    const toPos = v => o.log ? 1000 * Math.log(v / o.min) / Math.log(o.max / o.min) : 1000 * (v - o.min) / (o.max - o.min);
+    const fromPos = p => o.log ? o.min * Math.pow(o.max / o.min, p / 1000) : o.min + (o.max - o.min) * p / 1000;
+    const round = v => o.step ? Math.round(v / o.step) * o.step : Number(v.toPrecision(3));
+    o.sync = () => { const v = o.get(); num.value = o.step ? +(+v).toFixed(String(o.step).split('.')[1]?.length || 0) : sig(v, 3); rng.value = toPos(Math.min(o.max, Math.max(o.min, v))); };
+    rng.addEventListener('input', () => { o.set(round(fromPos(+rng.value))); o.sync(); changed(o); });
+    num.addEventListener('change', () => { let v = parseFloat(num.value); if (!isFinite(v)) v = o.get(); v = Math.min(o.max, Math.max(o.min, v)); o.set(v); o.sync(); changed(o); });
+    o.sync(); CTRLS.push(o);
+    return o;
+  }
+  const CTRLS = [];
+  function changed(o) { if (o && o.after) o.after(); updateDerived(); if (ui.pf && (!o || !o.pf)) pfBuildControls(); requestReset(); }
+
+  // casting
+  control($('castCtl'), { id: 'superheat', label: 'Pouring superheat', unit: 'K', min: 0, max: 150, step: 1, get: () => P.superheat, set: v => P.superheat = v });
+  control($('castCtl'), { id: 'preheat', label: 'Mould preheat', unit: '°C', min: 20, max: 1200, step: 5, get: () => P.preheat, set: v => P.preheat = v });
+  control($('castCtl'), { id: 'chillT', label: 'Chill (cooling water) temperature', unit: '°C', min: 10, max: 400, step: 5, get: () => P.chillT, set: v => P.chillT = v });
+  // DS
+  control($('dsSliders'), { id: 'G', label: 'Temperature gradient G', unit: 'K/mm', min: 0.1, max: 50, log: true, get: () => P.G, set: v => { P.G = v; } });
+  control($('dsSliders'), { id: 'Tdot', label: 'Cooling rate Ṫ', unit: 'K/s', min: 0.005, max: 20, log: true, get: () => P.Tdot, set: v => P.Tdot = v });
+  control($('dsSliders2'), { id: 'tilt', label: 'Isotherm tilt (heat-flow angle)', unit: '°', min: -30, max: 30, step: 1, get: () => P.tilt, set: v => P.tilt = v });
+  // nucleation
+  control($('natCtl'), { id: 'natN', label: 'Nuclei density', unit: 'per mm²', min: 0.001, max: 8, log: true, get: () => P.nat.n, set: v => P.nat.n = v });
+  control($('natCtl'), { id: 'natT', label: 'Mean nucleation undercooling ΔTn', unit: 'K', min: 0.1, max: 20, step: 0.1, get: () => P.nat.dTn, set: v => P.nat.dTn = v });
+  control($('natCtl'), { id: 'natS', label: 'Spread σ', unit: 'K', min: 0.05, max: 5, step: 0.05, get: () => P.nat.sig, set: v => P.nat.sig = v });
+  const refAfter = () => { $('refLevel').value = 'custom'; };
+  control($('refCtl'), { id: 'refN', label: 'Refiner nuclei density', unit: 'per mm²', min: 0.001, max: 8, log: true, get: () => P.ref.n, set: v => P.ref.n = v, after: refAfter });
+  control($('refCtl'), { id: 'refT', label: 'Refiner ΔTn', unit: 'K', min: 0.1, max: 20, step: 0.1, get: () => P.ref.dTn, set: v => P.ref.dTn = v, after: refAfter });
+  control($('wallCtl'), { id: 'wallN', label: 'Wall nuclei density', unit: 'per mm of wall', min: 0, max: 20, step: 0.1, get: () => P.wall.n, set: v => P.wall.n = v });
+  control($('wallCtl'), { id: 'wallT', label: 'Wall ΔTn', unit: 'K', min: 0.1, max: 20, step: 0.1, get: () => P.wall.dTn, set: v => P.wall.dTn = v });
+  control($('stirCtl'), { id: 'stir', label: 'Melt stirring (fragmentation)', unit: 'fragments per mm of front per s', min: 0, max: 3, step: 0.05, get: () => P.stir, set: v => P.stir = v });
+  // composition
+  const c0Ctl = control($('c0Ctl'), { id: 'C0', label: 'Composition C₀', unit: 'wt%', min: 0.5, max: 30, step: 0.1, get: () => P.C0, set: v => { const b = C.ALLOYS[P.alloy]; P.C0 = Math.min(b.Cmaxsel, Math.max(b.Cmin, v)); }, after: () => drawPD() });
+
+  const REF_LEVELS = { low: { n: 0.6, dTn: 1.5, sig: 0.4 }, std: { n: 3, dTn: 0.8, sig: 0.3 }, heavy: { n: 7, dTn: 0.4, sig: 0.15 } };
+  $('refLevel').addEventListener('change', e => {
+    const v = e.target.value;
+    if (v === 'none') P.ref = Object.assign({}, P.nat);
+    else if (REF_LEVELS[v]) P.ref = Object.assign({}, REF_LEVELS[v]);
+    syncAll(); changed();
+  });
+  $('inocAll').addEventListener('change', e => { P.inocAll = e.target.checked; changed(); });
+  $('seedNum').addEventListener('change', e => { P.seed = Math.max(1, parseInt(e.target.value) || 1); changed(); });
+  $('reroll').addEventListener('click', () => { P.seed = 1 + Math.floor(Math.random() * 99998); $('seedNum').value = P.seed; changed(); });
+
+  // alloy select
+  for (const [k, a] of Object.entries(C.ALLOYS)) { const o = document.createElement('option'); o.value = k; o.textContent = a.name; $('alloySel').appendChild(o); }
+  $('alloySel').addEventListener('change', e => { P.alloy = e.target.value; P.C0 = C.ALLOYS[P.alloy].C0; syncAll(); changed(); });
+
+  // mode / direction
+  function setMode(m) { P.mode = m; syncAll(); changed(); }
+  $('modeCast').addEventListener('click', () => setMode('casting'));
+  $('modeDS').addEventListener('click', () => setMode('ds'));
+  $('dirUp').addEventListener('click', () => { P.dir = 'up'; syncAll(); changed(); });
+  $('dirDown').addEventListener('click', () => { P.dir = 'down'; syncAll(); changed(); });
+
+  function syncAll() {
+    for (const o of CTRLS) o.sync();
+    const b = C.ALLOYS[P.alloy];
+    const c0n = $('c_C0'); c0n.max = b.Cmaxsel; c0n.min = b.Cmin; c0Ctl.max = b.Cmaxsel; c0Ctl.min = b.Cmin; c0Ctl.sync();
+    $('alloySel').value = P.alloy;
+    $('modeCast').setAttribute('aria-pressed', P.mode === 'casting'); $('modeDS').setAttribute('aria-pressed', P.mode === 'ds');
+    $('dirUp').setAttribute('aria-pressed', P.dir === 'up'); $('dirDown').setAttribute('aria-pressed', P.dir === 'down');
+    $('castCtl').style.display = P.mode === 'casting' ? '' : 'none';
+    $('dsCtl').style.display = P.mode === 'ds' ? '' : 'none';
+    $('modeHint').textContent = P.mode === 'casting'
+      ? 'Melt is poured instantly into the mould. Heat flows into the mould materials; G and V come out of the calculation (see live readouts).'
+      : 'Bridgman furnace: you set the gradient G and cooling rate Ṫ. The isotherms move at V = Ṫ/G. Grains start on chills and mould walls.';
+    $('inocAll').checked = P.inocAll;
+    $('seedNum').value = P.seed;
+    for (const b2 of document.querySelectorAll('#speedSeg button')) b2.setAttribute('aria-pressed', b2.dataset.speed === ui.speed);
+    updateDerived(); drawPD();
+  }
+
+  function updateDerived() {
+    const a = S.a = C.alloyProps(P.alloy, P.C0);
+    const d = C.dsDerived(P.G, P.Tdot);
+    const morph = d.ratio >= 1 ? 'planar front' : d.ratio > 0.05 ? 'cellular' : 'dendritic';
+    $('dsDerived').innerHTML = `
+      <span>Isotherm speed V = Ṫ/G</span><span>${sig(d.V * 1000, 3)} mm/s · ${sig(d.V * 60000, 3)} mm/min</span>
+      <span>Tip undercooling ΔT<sub>tip</sub> = √(V/A)</span><span>${fmt(d.dTtip)} K</span>
+      <span>Primary spacing λ₁ (Kurz–Fisher)</span><span>${fmt(d.lam1 * 1e6, 3)} µm</span>
+      <span>G/V vs ΔT₀/D (front shape)</span><span>${morph}</span>`;
+    // props
+    const b = a;
+    $('props').innerHTML = [
+      ['Liquidus T<sub>L</sub>', fmt(a.Tl, 4) + ' °C'], ['Solidus T<sub>S</sub>', (a.C0 <= a.Csmax ? fmt(a.Ts, 4) : fmt(a.Te, 4)) + ' °C'],
+      ['Eutectic T<sub>E</sub>', fmt(a.Te, 4) + ' °C'], ['Freezing range ΔT₀', fmt(a.dT0, 3) + ' K'],
+      ['Partition coeff. k', a.k], ['Liquidus slope m', fmt(a.m, 3) + ' K/wt%'],
+      ['Eutectic fraction (Scheil)', fmt(a.fe * 100, 3) + ' %'], ['Growth law v = A·ΔT²', 'A = ' + sig(a.A * 1e6, 2) + ' µm/s/K²'],
+    ].map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('');
+  }
+
+  // ---------- crisp chart canvases ----------
+  function fit(c, aspect) {
+    const dpr = window.devicePixelRatio || 1, W = Math.max(240, c.clientWidth || 300), H = Math.round(W * aspect);
+    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+    const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return { x, W, H };
+  }
+  window.addEventListener('resize', () => { drawPD(); drawHM(); });
+  // ---------- phase diagram ----------
+  const pd = $('pd'); let pctx = pd.getContext('2d'), PDW = 300, PDH = 220;
+  function pdGeom() { const a = C.ALLOYS[P.alloy]; return { a, x0: 44, x1: PDW - 10, y0: 10, y1: PDH - 34, Tmax: a.Tm + 0.08 * (a.Tm - a.Tlow), Tmin: a.Tlow }; }
+  function drawPD() {
+    const g = pdGeom(), a = g.a, ink = css('--ink'), muted = css('--muted'), line = css('--line'), acc = css('--accent'), hot = css('--hot');
+    const X = c => g.x0 + (g.x1 - g.x0) * c / a.plotC, Y = T => g.y0 + (g.y1 - g.y0) * (g.Tmax - T) / (g.Tmax - g.Tmin);
+    { const f = fit(pd, 0.72); pctx = f.x; PDW = f.W; PDH = f.H; }
+    const g2 = pdGeom(); Object.assign(g, g2);
+    pctx.clearRect(0, 0, PDW, PDH);
+    pctx.font = '11px system-ui, sans-serif'; pctx.lineWidth = 1;
+    // grid
+    pctx.strokeStyle = line; pctx.fillStyle = muted;
+    const tStep = (g.Tmax - g.Tmin) > 400 ? 100 : 50;
+    for (let T = Math.ceil(g.Tmin / tStep) * tStep; T <= g.Tmax; T += tStep) { pctx.beginPath(); pctx.moveTo(g.x0, Y(T)); pctx.lineTo(g.x1, Y(T)); pctx.stroke(); pctx.textAlign = 'right'; pctx.fillText(T, g.x0 - 6, Y(T) + 4); }
+    const cStep = a.plotC > 20 ? 10 : 4;
+    for (let c = 0; c <= a.plotC; c += cStep) { pctx.textAlign = 'center'; pctx.fillText(c, X(c), g.y1 + 14); }
+    pctx.fillText(`wt% ${a.solute}`, (g.x0 + g.x1) / 2, g.y1 + 28);
+    pctx.save(); pctx.translate(11, (g.y0 + g.y1) / 2); pctx.rotate(-Math.PI / 2); pctx.fillText('T (°C)', 0, 0); pctx.restore();
+    // lines
+    pctx.strokeStyle = ink; pctx.lineWidth = 2;
+    const Tle = cc => a.Tm + (a.Te - a.Tm) / a.Ce * cc;
+    pctx.beginPath(); pctx.moveTo(X(0), Y(a.Tm)); pctx.lineTo(X(a.Ce), Y(a.Te)); pctx.stroke();              // liquidus
+    const Cs = a.k * a.Ce;
+    pctx.beginPath(); pctx.moveTo(X(0), Y(a.Tm)); pctx.lineTo(X(Cs), Y(a.Te)); pctx.stroke();                // solidus
+    pctx.beginPath(); pctx.moveTo(X(Cs), Y(a.Te)); pctx.lineTo(X(a.plotC), Y(a.Te)); pctx.stroke();          // eutectic
+    if (a.Ce < a.plotC) { // hypereutectic liquidus stub
+      pctx.setLineDash([5, 4]); pctx.beginPath(); pctx.moveTo(X(a.Ce), Y(a.Te)); pctx.lineTo(X(a.plotC), Y(a.Te + (a.plotC - a.Ce) * 6)); pctx.stroke(); pctx.setLineDash([]);
+    }
+    // solvus
+    pctx.beginPath(); for (let k = 0; k <= 30; k++) { const f = k / 30, T = a.Te - f * (a.Te - g.Tmin), c = a.solvLow + (Cs - a.solvLow) * Math.pow(1 - f, 2.2); if (k === 0) pctx.moveTo(X(c), Y(T)); else pctx.lineTo(X(c), Y(T)); } pctx.stroke();
+    // labels
+    pctx.fillStyle = muted; pctx.textAlign = 'left'; pctx.font = '12px system-ui, sans-serif';
+    pctx.fillText('L', X(a.plotC * 0.6), Y(a.Tm - 0.05 * (a.Tm - a.Te)));
+    pctx.fillText(a.alpha + ' + L', X(Cs * 0.9 + a.Ce * 0.05) + 6, Y((a.Te + Tle(Cs)) / 2 + 4));
+    pctx.fillText(a.alpha, X(Cs * 0.12) + 2, Y(a.Te - 0.25 * (a.Te - g.Tmin)));
+    pctx.textAlign = 'right'; pctx.fillText(a.alpha.split(' ')[0] + ' + ' + a.second, g.x1 - 6, Y(a.Te - 0.45 * (a.Te - g.Tmin)));
+    pctx.font = '10.5px ui-monospace, Menlo, Consolas, monospace'; pctx.fillText(`T_E ${fmt(a.Te, 4)} °C`, g.x1 - 6, Y(a.Te) + 13); pctx.textAlign = 'left';
+    // composition line
+    const p = S.a;
+    pctx.strokeStyle = hot; pctx.lineWidth = 2; pctx.setLineDash([6, 4]);
+    pctx.beginPath(); pctx.moveTo(X(P.C0), Y(g.Tmax)); pctx.lineTo(X(P.C0), g.y1); pctx.stroke(); pctx.setLineDash([]);
+    pctx.fillStyle = acc; pctx.beginPath(); pctx.arc(X(P.C0), Y(p.Tl), 5, 0, 7); pctx.fill();
+    pctx.fillStyle = hot; pctx.beginPath(); pctx.arc(X(P.C0), Y(Math.max(p.Ts, p.Te)), 4, 0, 7); pctx.fill();
+    pctx.fillStyle = ink; pctx.font = '600 11.5px system-ui, sans-serif'; pctx.textAlign = X(P.C0) > (g.x0 + g.x1) / 2 ? 'right' : 'left';
+    const off = X(P.C0) > (g.x0 + g.x1) / 2 ? -9 : 9;
+    pctx.fillText(`C₀ = ${fmt(P.C0)} wt%`, X(P.C0) + off, g.y0 + 14);
+    { const txt = `T_L ${fmt(p.Tl, 4)} °C`, tx = X(P.C0) + off, ty = Math.max(Y(p.Tl) - 6, g.y0 + 32), tw = pctx.measureText(txt).width;
+      pctx.fillStyle = css('--panel'); pctx.globalAlpha = 0.85; pctx.fillRect(off > 0 ? tx - 2 : tx - tw - 2, ty - 11, tw + 4, 14); pctx.globalAlpha = 1;
+      pctx.fillStyle = acc; pctx.fillText(txt, tx, ty); }
+    // border
+    pctx.strokeStyle = line; pctx.lineWidth = 1; pctx.strokeRect(g.x0, g.y0, g.x1 - g.x0, g.y1 - g.y0);
+  }
+  function pdPick(e) {
+    const r = pd.getBoundingClientRect(), g = pdGeom();
+    const x = (e.clientX - r.left) * PDW / r.width;
+    const c = (x - g.x0) / (g.x1 - g.x0) * g.a.plotC;
+    P.C0 = Math.round(Math.min(g.a.Cmaxsel, Math.max(g.a.Cmin, c)) * 10) / 10;
+    c0Ctl.sync(); updateDerived(); drawPD(); if (ui.pf) pfBuildControls(); requestReset();
+  }
+  pd.addEventListener('pointerdown', e => { pd.setPointerCapture(e.pointerId); ui.pdDrag = true; pdPick(e); });
+  pd.addEventListener('pointermove', e => { if (ui.pdDrag) pdPick(e); });
+  pd.addEventListener('pointerup', () => ui.pdDrag = false);
+  pd.addEventListener('pointercancel', () => ui.pdDrag = false);
+
+  function drawHM() { }
+
+  // ---------- live readouts ----------
+  function live() {
+    if (ui.pf) {
+      const d = DENDRITE.st, sc = pfScales(), m = PFP[ui.pf], s2 = d.stats || {};
+      const rows = [['Time', sig(d.t * sc.tau0 * 1e3, 3) + ' ms'], ['Model steps', d.steps], ['Solid fraction', fmt((s2.fs || 0) * 100, 3) + ' %']];
+      if (ui.pf === 'iso') rows.push(['Undercooling now', fmt((1 - (m.zt0 - m.rate * d.t)) * sc.dT0, 3) + ' K'], ['Temperature now', fmt(S.a.Tl - (1 - (m.zt0 - m.rate * d.t)) * sc.dT0, 4) + ' °C']);
+      else rows.push(['Distance grown', fmt(um(s2.grown || 0), 3) + ' µm'], ['G', sig(sc.dT0 / (m.lT * sc.W) / 1000, 3) + ' K/mm'], ['V', sig(m.Vt * sc.W / sc.tau0 * 1000, 3) + ' mm/s']);
+      rows.push(['Solver', DENDRITE.gpu ? 'GPU (WebGL2)' : 'CPU (fallback)']);
+      $('live').innerHTML = rows.map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join('');
+      return;
+    }
+    const a = S.a, rows = [['Time', fmt(S.t, 3) + ' s'], ['Solidified (captured)', fmt(100 * (1 - S.liquid / Math.max(1, S.metal)), 3) + ' %'], ['Grains so far', C.gTheta.length - 1], ['Max front undercooling', fmt(S.frontdT) + ' K']];
+    if (P.mode === 'ds') {
+      rows.push(['Gradient G (now)', fmt((S.Gt || 0) / 1000) + ' K/mm'], ['Isotherm speed V', sig((S.V || 0) * 1000, 3) + ' mm/s'], ['Cooling rate Ṫ = G·V', sig((S.Gt || 0) * (S.V || 0), 3) + ' K/s'], ['Liquidus position', fmt(((S.sL || 0) - (S.sMin || 0)) * 1000, 3) + ' mm']);
+    } else {
+      rows.push(['Front gradient G', fmt(S.frontG) + ' K/mm'], ['Front speed V', sig(S.frontV, 3) + ' mm/s'], ['Front cooling rate Ṫ', sig(S.frontTdot, 3) + ' K/s'], ['Liquidus T_L', fmt(a.Tl, 4) + ' °C']);
+    }
+    $('live').innerHTML = rows.map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join('');
+  }
+
+  // ---------- results ----------
+  function chipsHTML(list) { return list.map(([cls, html]) => `<span class="chip ${cls}">${html}</span>`).join(''); }
+  function results(final) {
+    if (ui.pf) return pfResults(final);
+    const st = ui.stats = C.stats();
+    const chips = [];
+    chips.push(['', `Grains <b>${st.grains}</b>`], ['', `Columnar <b>${fmt(st.colFrac * 100, 2)} %</b>`], ['', `Equiaxed <b>${fmt(st.eqFrac * 100, 2)} %</b>`]);
+    if (st.nEq) chips.push(['', `Mean equiaxed grain size <b>${fmt(st.eqECD)} mm</b>`]);
+    if (P.mode === 'casting') chips.push(['', `Chill-zone grains <b>${st.chillZone}</b>`]);
+    if (st.refiner) chips.push(['', `From refiner <b>${st.refiner}</b>`]);
+    if (st.frag) chips.push(['', `Stirring fragments <b>${st.frag}</b>`]);
+    if (P.mode === 'ds' && st.topGrains !== undefined) chips.push([st.topGrains === 1 ? 'good' : '', st.topGrains === 1 ? 'Single crystal at the top' : `Grains reaching the top <b>${st.topGrains}</b>`]);
+    $('chips').innerHTML = chipsHTML(chips);
+    let s = '';
+    if (st.grains === 0) s = 'Press Run to solidify the specimen.';
+    else if (P.mode === 'ds') {
+      if (st.topGrains === 1) s = 'One grain fills the end of the casting: a single crystal.';
+      else if (st.colFrac > 0.8) s = 'Mainly columnar growth: grains grew from the chill against the heat flow, with competitive selection of well-aligned grains.';
+      else s = 'Mainly equiaxed: nuclei in the undercooled liquid ahead of the front grew before the columnar front arrived.';
+    } else {
+      if (st.colFrac > 0.7) s = 'Mostly columnar: grains from the mould wall grew inward against the heat flow. Few nuclei were active in the melt ahead of the front.';
+      else if (st.colFrac > 0.25) s = 'Mixed structure: a chill zone at the wall, a columnar zone, and an equiaxed core where the gradient became low enough for nuclei in the melt to grow.';
+      else s = 'Mostly equiaxed: nuclei in the melt (native, refiner or fragments) grew before the columnar front could advance.';
+    }
+    $('summary').textContent = s + (final ? '' : (st.grains ? ' (still running)' : ''));
+    if (final && !ui.runLogged) { ui.runLogged = true; logRun(chips); }
+  }
+  function procText() { return P.mode === 'ds' ? `DS ${P.dir === 'up' ? '↑' : '↓'} G ${sig(P.G, 3)} K/mm, Ṫ ${sig(P.Tdot, 3)} K/s, V ${sig(P.Tdot / P.G, 3)} mm/s` : `Cast: superheat ${P.superheat} K, mould ${P.preheat} °C`; }
+  function nucText() { return `native ${sig(P.nat.n, 2)}/mm² @${P.nat.dTn} K; refiner ${P.inocAll ? 'all melt' : 'painted'} ${sig(P.ref.n, 2)}/mm² @${P.ref.dTn} K; wall ${P.wall.n}/mm${P.stir ? '; stir ' + P.stir : ''}`; }
+  function condText() { return ui.pf ? pfCondText() : procText() + '; ' + nucText(); }
+  const plain = html => html.replace(/<[^>]+>/g, '');
+  function logRun(chips) {
+    ui.log.push({ scen: ui.preset ? ui.preset.name.split(/[:(]/)[0].trim() : 'Custom', alloy: `${C.ALLOYS[P.alloy].name.split(' (')[0]} ${fmt(P.C0)}%`, cond: condText(), res: chips.map(c => plain(c[1])).join(', ') });
+    renderLog();
+  }
+  function renderLog() {
+    $('logTable').querySelector('tbody').innerHTML = ui.log.map((r, i) => `<tr><td>${i + 1}</td><td>${r.scen}</td><td>${r.alloy}</td><td style="white-space:normal;min-width:260px">${r.cond}</td><td style="white-space:normal;min-width:260px">${r.res}</td></tr>`).join('') || '<tr><td colspan="5" class="hint">No finished runs yet.</td></tr>';
+  }
+  $('clearLog').addEventListener('click', () => { ui.log = []; renderLog(); });
+  function resultsText() {
+    const chips = [...$('chips').querySelectorAll('.chip')].map(c => c.textContent);
+    const lines = [`Solidification Microstructure Lab: ${ui.preset ? ui.preset.name : 'Custom'}`,
+      `Alloy: ${C.ALLOYS[P.alloy].name}, C0 = ${fmt(P.C0)} wt% (T_L = ${fmt(S.a.Tl, 4)} °C)`,
+      `Conditions: ${condText()}`, `Result: ${chips.join(', ')}`, $('summary').textContent];
+    if (ui.log.length) { lines.push('', 'Run log:'); ui.log.forEach((r, i) => lines.push(`${i + 1}. ${r.scen} | ${r.alloy} | ${r.cond} | ${r.res}`)); }
+    return lines.join('\n');
+  }
+  $('copyRes').addEventListener('click', async () => {
+    const txt = resultsText();
+    try { await navigator.clipboard.writeText(txt); flash($('copyRes'), 'Copied'); }
+    catch (e) { openModal('Results as text', `<p class="hint">Select all and copy:</p><textarea readonly>${escapeHtml(txt)}</textarea>`); }
+  });
+  function flash(btn, txt) { const o = btn.textContent; btn.textContent = txt; setTimeout(() => btn.textContent = o, 1400); }
+  const escapeHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+
+  // ---------- editor ----------
+  const TOOLS = [
+    ['metal', 'Melt', [60, 80, 100]], ['inoc', 'Inoculated melt', [70, 140, 110]],
+    ['sand', 'Sand', MATCOL[SAND]], ['die', 'Steel die', MATCOL[DIE]], ['chill', 'Copper chill', MATCOL[CHILL]], ['shell', 'Ceramic shell', MATCOL[SHELL]], ['insul', 'Insulation', MATCOL[INSUL]], ['air', 'Air / erase', [20, 24, 30]],
+  ];
+  const TOOLMAT = { metal: METAL, inoc: METAL, sand: SAND, die: DIE, chill: CHILL, shell: SHELL, insul: INSUL, air: AIR };
+  for (const [k, name, col] of TOOLS) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tool'; b.dataset.tool = k;
+    b.innerHTML = `<i style="background:rgb(${col.join(',')})"></i>${name}`;
+    b.addEventListener('click', () => { ui.tool = k; syncTools(); });
+    $('tools').appendChild(b);
+  }
+  function syncTools() {
+    for (const b of $('tools').children) b.setAttribute('aria-pressed', b.dataset.tool === ui.tool);
+    $('shapeBrush').setAttribute('aria-pressed', ui.shape === 'brush'); $('shapeRect').setAttribute('aria-pressed', ui.shape === 'rect');
+    $('brushSize').value = ui.brush; $('brushOut').textContent = (ui.brush * 2 * DXmm).toFixed(1) + ' mm';
+  }
+  $('shapeBrush').addEventListener('click', () => { ui.shape = 'brush'; syncTools(); });
+  $('shapeRect').addEventListener('click', () => { ui.shape = 'rect'; syncTools(); });
+  $('brushSize').addEventListener('input', e => { ui.brush = +e.target.value; syncTools(); });
+
+  function snapshot() { return { mats: C.mats.slice(), inoc: C.inoc.slice(), seedMap: C.seedMap.slice(), seeds: JSON.parse(JSON.stringify(C.seeds)) }; }
+  function restore(s) { C.mats.set(s.mats); C.inoc.set(s.inoc); C.seedMap.set(s.seedMap); C.seeds = s.seeds; }
+  function pushUndo() { ui.undo.push(snapshot()); if (ui.undo.length > 25) ui.undo.shift(); }
+  $('undoBtn').addEventListener('click', () => { const s = ui.undo.pop(); if (s) { restore(s); editDone(); } });
+  $('clearBtn').addEventListener('click', () => { pushUndo(); C.mats.fill(AIR); C.inoc.fill(0); C.seedMap.fill(0); C.seeds = []; editDone(); });
+
+  function setCell(c) {
+    const m = TOOLMAT[ui.tool];
+    C.mats[c] = m; C.inoc[c] = ui.tool === 'inoc' ? 1 : 0;
+    C.seedMap[c] = 0;
+  }
+  function paintBrush(i, j) {
+    const r = ui.brush - 0.5;
+    for (let dj = -ui.brush; dj <= ui.brush; dj++) for (let di = -ui.brush; di <= ui.brush; di++) {
+      if (di * di + dj * dj > r * r + 0.25) continue;
+      const x = i + di, y = j + dj; if (x < 0 || y < 0 || x >= NX || y >= NY) continue;
+      setCell(y * NX + x);
+    }
+  }
+  function cellFromEvent(e) { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(NX - 1, Math.floor((e.clientX - r.left) / r.width * NX))), Math.max(0, Math.min(NY - 1, Math.floor((e.clientY - r.top) / r.height * NY)))]; }
+  ui.draw = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  function syncDraw() { $('drawOn').checked = ui.draw; cv.style.touchAction = ui.draw ? 'none' : 'auto'; cv.style.cursor = ui.draw ? 'crosshair' : 'default'; }
+  $('drawOn').addEventListener('change', e => { ui.draw = e.target.checked; syncDraw(); }); syncDraw();
+  function endPaint() { ui.painting = false; ui.dragStart = null; ui.lastP = null; }
+  cv.addEventListener('pointercancel', () => { if (ui.painting) { endPaint(); editDone(); } });
+  cv.addEventListener('pointerdown', e => {
+    if (!ui.draw) return;
+    cv.setPointerCapture(e.pointerId);
+    if (ui.running) pause();
+    pushUndo();
+    const p = cellFromEvent(e); ui.hover = p; ui.painting = true;
+    if (ui.shape === 'rect') ui.dragStart = p; else { paintBrush(p[0], p[1]); ui.lastP = p; markEdit(); }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!ui.draw) return;
+    const p = cellFromEvent(e); ui.hover = p;
+    if (ui.painting && ui.shape === 'brush') {
+      const [x0, y0] = ui.lastP || p, steps = Math.max(Math.abs(p[0] - x0), Math.abs(p[1] - y0), 1);
+      for (let k = 1; k <= steps; k++) paintBrush(Math.round(x0 + (p[0] - x0) * k / steps), Math.round(y0 + (p[1] - y0) * k / steps));
+      ui.lastP = p; markEdit();
+    } else if (!ui.running) ui.redraw = true;
+  });
+  cv.addEventListener('pointerup', e => {
+    if (!ui.painting) return;
+    ui.painting = false;
+    if (ui.shape === 'rect' && ui.dragStart) {
+      const p = cellFromEvent(e), [i0, j0] = ui.dragStart;
+      for (let j = Math.min(j0, p[1]); j <= Math.max(j0, p[1]); j++) for (let i = Math.min(i0, p[0]); i <= Math.max(i0, p[0]); i++) setCell(j * NX + i);
+      ui.dragStart = null;
+    }
+    ui.lastP = null; editDone();
+  });
+  cv.addEventListener('pointerleave', () => { if (!ui.painting) { ui.hover = null; ui.redraw = true; } });
+  function markEdit() { ui.needReset = true; }
+  function editDone() {
+    // drop seeds with no cells
+    const used = new Set(); for (let c = 0; c < N; c++) if (C.seedMap[c]) used.add(C.seedMap[c] - 1);
+    C.seeds.forEach((s, i) => { if (s && !used.has(i)) C.seeds[i] = null; });
+    renderSeeds(); ui.needReset = true;
+  }
+  function renderSeeds() { }
+
+  // design code (save/load)
+  function rle(arr) { const out = []; let v = arr[0], n = 0; for (let i = 0; i < arr.length; i++) { if (arr[i] === v) n++; else { out.push(v, n); v = arr[i]; n = 1; } } out.push(v, n); return out; }
+  function unrle(r, arr) { let k = 0; for (let i = 0; i < r.length; i += 2) { arr.fill(r[i], k, k + r[i + 1]); k += r[i + 1]; } }
+  function encode() { const o = { v: 1, m: rle(C.mats), i: rle(C.inoc), s: rle(C.seedMap), seeds: C.seeds, P: JSON.parse(JSON.stringify(P)) }; return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
+  function decode(code) {
+    const o = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if (!o || o.v !== 1) throw new Error('bad');
+    pushUndo(); unrle(o.m, C.mats); unrle(o.i, C.inoc); unrle(o.s, C.seedMap); C.seeds = o.seeds || [];
+    Object.assign(P, o.P);
+    ui.preset = null; $('preset').value = 'custom-loaded'; syncTabs(); $('scenTitle').textContent = 'Loaded design'; updateAbout();
+    syncAll(); editDone();
+  }
+  $('codeBtn').addEventListener('click', () => {
+    openModal('Save or load a design', `<p class="hint">This code stores the mould drawing and all settings. Copy it into your notes or send it to your group. To load a design, paste a code and press Load.</p>
+      <textarea id="codeTxt">${encode()}</textarea><div class="row"><button class="btn small" id="codeCopy" type="button">Copy code</button><button class="btn small primary" id="codeLoad" type="button">Load pasted code</button><span class="hint" id="codeMsg"></span></div>`);
+    $('codeCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('codeTxt').value); $('codeMsg').textContent = 'Copied.'; } catch (e) { $('codeTxt').select(); $('codeMsg').textContent = 'Press Ctrl/Cmd + C to copy the selected code.'; } });
+    $('codeLoad').addEventListener('click', () => { try { decode($('codeTxt').value); closeModal(); } catch (e) { $('codeMsg').textContent = 'That code could not be read. Check that it was copied completely.'; } });
+  });
+
+  // ---------- modal ----------
+  function openModal(title, html) { $('modalTitle').textContent = title; $('modalBody').innerHTML = html; $('modal').classList.add('open'); $('modalClose').focus(); }
+  function closeModal() { $('modal').classList.remove('open'); }
+  $('modalClose').addEventListener('click', closeModal);
+  $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ================= Dendrite-scale (phase-field) scenarios =================
+  const PFP = {
+    iso: { lam: 25, zt0: 0.85, rate: 7e-4, n: 20, eps: 0.05, noise: 0.08, seed: 11 },
+    ds: { lam: 25, lT: 8000, Vt: 0.67, Om0: 0.3, grains: [0, 30], nSeeds: 6, eps: 0.05, noise: 0.08, seed: 3 },
+    detail: (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || Math.min(screen.width, screen.height) < 700 ? 'small' : 'std',
+  };
+  // window size in cells: a dendrite arm needs ~20 cells, so more detail = larger window = more arms and branches
+  const PFDETAIL = {
+    small: { name: 'Small (fast)', iso: 1024, ds: [640, 800], n: 9, seeds: 4 },
+    std: { name: 'Standard', iso: 1536, ds: [1024, 1280], n: 20, seeds: 6 },
+    large: { name: 'Large', iso: 2048, ds: [1536, 1920], n: 36, seeds: 9 },
+  };
+  const pfOK = DENDRITE.init($('pfgl'), $('pf2d'));
+  PFP.iso.n = PFDETAIL[PFP.detail].n; PFP.ds.nSeeds = PFDETAIL[PFP.detail].seeds;
+  const pfCanvas = () => DENDRITE.gpu ? $('pfgl') : $('pf2d');
+  function pfScales() { const m = PFP[ui.pf]; return DENDRITE.scales({ mode: ui.pf, alloy: S.a, lam: m.lam }); }
+  const um = v => v * 1e6;
+  function pfWindowText() {
+    const st = DENDRITE.st, sc = pfScales();
+    return `Window ${fmt(um(st.nx * DENDRITE.DX * sc.W), 3)} × ${fmt(um(st.ny * DENDRITE.DX * sc.W), 3)} µm${ui.pf === 'ds' ? ' (fixed window, bottom = chilled wall)' : ''}. Time ${sig(st.t * sc.tau0 * 1e3, 3)} ms.`;
+  }
+  function pfConfig() {
+    const m = PFP[ui.pf];
+    const cfg = { mode: ui.pf, alloy: S.a, lam: m.lam, eps: m.eps, noise: m.noise, seed: m.seed };
+    if (ui.pf === 'iso') {
+      let rs = m.seed; const rnd = () => { rs = (rs * 16807) % 2147483647; return rs / 2147483647; };
+      Object.assign(cfg, { zt0: m.zt0, rate: m.rate, grains: Array.from({ length: m.n }, () => Math.round(rnd() * 90 - 45)) });
+      if (!DENDRITE.gpu) cfg.nx = cfg.ny = 192;
+      else cfg.nx = cfg.ny = PFDETAIL[PFP.detail].iso;
+    } else {
+      Object.assign(cfg, { lT: m.lT, Vt: m.Vt, Om0: m.Om0, grains: m.grains.slice(), nSeeds: Math.max(m.nSeeds, m.grains.length) });
+      if (DENDRITE.gpu) { [cfg.nx, cfg.ny] = PFDETAIL[PFP.detail].ds; } else { cfg.nx = 128; cfg.ny = 224; }
+    }
+    return cfg;
+  }
+  function pfCondText() {
+    const m = PFP[ui.pf], sc = pfScales();
+    if (ui.pf === 'iso') return `Equiaxed: ${m.n} nuclei, ΔT ${fmt((1 - m.zt0) * sc.dT0, 3)} K below liquidus, cooling ${sig(m.rate * sc.dT0 / sc.tau0, 3)} K/s, ε₄ ${m.eps}`;
+    const G = sc.dT0 / (m.lT * sc.W), V = m.Vt * sc.W / sc.tau0;
+    return `Columnar: crystals ${m.grains.map(t => t + '°').join(', ')}, ${Math.max(m.nSeeds, m.grains.length)} seeds; G ${sig(G / 1000, 3)} K/mm, V ${sig(V * 1000, 3)} mm/s, Ṫ ${sig(G * V, 3)} K/s, start ΔT ${fmt(m.Om0 * sc.dT0, 3)} K, ε₄ ${m.eps}`;
+  }
+  function pfReset() {
+    ui.needReset = false; ui.runLogged = false; pfSteps = 2;
+    S.a = C.alloyProps(P.alloy, P.C0);
+    DENDRITE.st.view = ui.view === 'cryst' ? 1 : 0;
+    DENDRITE.setup(pfConfig());
+    pfResults(false); live(); setStatus(); legend();
+  }
+  function pfResults(final) {
+    const st = DENDRITE.stats(), sc = pfScales(), C0 = P.C0;
+    const chips = [];
+    if (!st) return;
+    chips.push(['', `Solid fraction <b>${fmt(st.fs * 100, 2)} %</b>`]);
+    if (isFinite(st.cmin)) chips.push(['', `Coring: dendrite core <b>${fmt(st.cmin * C0, 2)} wt%</b> → last solid <b>${fmt(st.cmax * C0, 2)} wt%</b>`]);
+    if (ui.pf === 'iso') {
+      chips.push(['', `Nuclei <b>${PFP.iso.n}</b>`]);
+      if (isFinite(st.Vtip)) chips.push(['', `Arm tip speed <b>${sig(st.Vtip * 1000, 3)} mm/s</b>`]);
+      chips.push(['', `Longest arm <b>${fmt(um(st.tipR * sc.W), 3)} µm</b>`]);
+    } else {
+      chips.push(['', `Grown <b>${fmt(um(st.grown), 3)} µm</b>`]);
+      if (st.trunks) chips.push(['', `Primary trunks <b>${st.trunks}</b>, spacing λ₁ ≈ <b>${fmt(um(st.spacing), 3)} µm</b>`]);
+      const surv = Object.keys(st.grainShare).map(Number).filter(g => g > 0).sort((a, b) => a - b);
+      chips.push([surv.length === 1 ? 'good' : '', `Crystals still growing at the front <b>${surv.length} of ${PFP.ds.grains.length}</b>${surv.length ? ' (' + surv.map(g => PFP.ds.grains[g - 1] + '°').join(', ') + ')' : ''}`]);
+    }
+    $('chips').innerHTML = chipsHTML(chips);
+    let s;
+    if (ui.pf === 'iso') s = st.fs < 0.02 ? 'Press Run: nuclei grow into the undercooled, cooling melt.' :
+      st.fs < 0.6 ? 'Free dendritic growth: each nucleus grows four <100> primary arms with secondary side-branches. Rejected solute builds up in the liquid around the arms (orange–red), while the dendrite cores stay solute-poor (blue).' :
+        'Neighbouring dendrites impinge. The remaining liquid between the arms becomes strongly enriched and freezes last, leaving solute-rich interdendritic regions: microsegregation (coring).';
+    else s = st.grown < 2e-7 ? 'Press Run: seed crystals on the chilled wall grow upward into the undercooled melt.' :
+      `Columnar dendrites grow upward and compete. Trunks of crystals whose <100> direction is closer to the heat-flow direction (vertical) lead and block tilted neighbours; side-branches grow into the gaps. Solute is rejected into the interdendritic liquid.`;
+    $('summary').textContent = s + (final ? '' : (st.fs > 0.02 ? ' (still running)' : ''));
+    if (final && !ui.runLogged) { ui.runLogged = true; logRun(chips); }
+  }
+  // log-scale turbo colour bar: k*C0 (blue) ... C0 (green, melt) ... C0/k (red, most enriched liquid)
+  function pfBar() { const k = S.a.k, lo = Math.log(k * 0.9), hi = Math.log(1 / k), pos = c => (Math.log(c) - lo) / (hi - lo); return { k, lo, hi, pos }; }
+  function pfLegendHTML() {
+    const C0 = P.C0, sol = C.ALLOYS[P.alloy].solute, b = pfBar();
+    const stops = Array.from({ length: 11 }, (_, i) => `rgb(${DENDRITE.turboJS(i / 10).map(v => Math.round(v * 255)).join(',')}) ${i * 10}%`).join(',');
+    let h = '';
+    if (ui.view !== 'cryst') h += `<span>${sol} content (log scale): ${fmt(0.9 * b.k * C0, 2)} <span class="bar" style="width:200px;background:linear-gradient(90deg,${stops})"></span> ${fmt(C0 / b.k, 3)} wt% · melt C₀ = ${fmt(C0, 2)} wt% is green (${fmt(b.pos(1) * 100, 2)} % along the bar). Dark line = solid/liquid interface.</span>`;
+    else h += '<span>Each colour is one crystal, coloured by orientation θ on the same scale (−45° blue, 0° green, +45° red). Dark = liquid.</span>';
+    h += `<span>${pfWindowText()}</span>`;
+    if (!DENDRITE.gpu) h += '<span style="color:var(--warn)">Running on the CPU (no WebGL2 float support): smaller window.</span>';
+    return h;
+  }
+  // controls
+  function pfBuildControls() {
+    for (let i = CTRLS.length - 1; i >= 0; i--) if (CTRLS[i].pf) CTRLS.splice(i, 1);
+    const host = $('pfCtl'); host.innerHTML = '';
+    if (!ui.pf) return;
+    S.a = C.alloyProps(P.alloy, P.C0);
+    const sc = pfScales(), m = PFP[ui.pf], dT0 = sc.dT0;
+    const add = o => { o.pf = true; control(host, o); };
+    const after = () => pfBuildDerived();
+    if (DENDRITE.gpu) {
+      const d = document.createElement('div'); d.className = 'body'; d.style.padding = '0';
+      d.innerHTML = `<div class="ctl" style="grid-template-columns:1fr 190px"><label for="pfDetail">Simulated area (cells)</label><select id="pfDetail">${Object.entries(PFDETAIL).map(([k, v]) => `<option value="${k}" ${k === PFP.detail ? 'selected' : ''}>${v.name}: ${ui.pf === 'iso' ? v.iso + '²' : v.ds.join(' × ')}</option>`).join('')}</select></div><p class="hint">A dendrite arm is about 20 cells wide, so a larger area holds more dendrites with secondary and tertiary arms. Larger areas need a stronger graphics card; choose Small if the run is slow.</p>`;
+      host.appendChild(d);
+      $('pfDetail').addEventListener('change', e => { PFP.detail = e.target.value; PFP.iso.n = PFDETAIL[PFP.detail].n; PFP.ds.nSeeds = PFDETAIL[PFP.detail].seeds; pfBuildControls(); requestReset(); });
+    }
+    if (ui.pf === 'iso') {
+      add({ id: 'pfdT', label: 'Undercooling when growth starts ΔT', unit: 'K', min: +(0.08 * dT0).toFixed(1), max: +(0.3 * dT0).toFixed(1), step: 0.1, get: () => (1 - m.zt0) * dT0, set: v => m.zt0 = 1 - v / dT0, after });
+      add({ id: 'pfRate', label: 'Cooling rate Ṫ', unit: 'K/s', min: 1e-4 * dT0 / sc.tau0, max: 3e-3 * dT0 / sc.tau0, log: true, get: () => m.rate * dT0 / sc.tau0, set: v => m.rate = v * sc.tau0 / dT0, after });
+      add({ id: 'pfN', label: 'Number of nuclei', unit: '', min: 1, max: 60, step: 1, get: () => m.n, set: v => m.n = Math.round(v), after });
+    } else {
+      add({ id: 'pfG', label: 'Temperature gradient G', unit: 'K/mm', min: dT0 / (30000 * sc.W) / 1000, max: dT0 / (1000 * sc.W) / 1000, log: true, get: () => dT0 / (m.lT * sc.W) / 1000, set: v => m.lT = dT0 / (v * 1000 * sc.W), after });
+      add({ id: 'pfV', label: 'Growth (isotherm) speed V', unit: 'mm/s', min: 0.15 * sc.W / sc.tau0 * 1000, max: 2 * sc.W / sc.tau0 * 1000, log: true, get: () => m.Vt * sc.W / sc.tau0 * 1000, set: v => m.Vt = v / 1000 * sc.tau0 / sc.W, after });
+      add({ id: 'pfSeeds', label: 'Seeds on the chilled wall (sets primary spacing)', unit: '', min: 1, max: 20, step: 1, get: () => Math.max(m.nSeeds, m.grains.length), set: v => m.nSeeds = Math.max(m.grains.length, Math.round(v)), after });
+      add({ id: 'pfOm', label: 'Undercooling at the chilled wall at start', unit: 'K', min: +(0.1 * dT0).toFixed(1), max: +(0.6 * dT0).toFixed(1), step: 0.1, get: () => m.Om0 * dT0, set: v => m.Om0 = v / dT0, after });
+    }
+    add({ id: 'pfEps', label: 'Crystal anisotropy ε₄', unit: '', min: 0.01, max: 0.06, step: 0.005, get: () => m.eps, set: v => m.eps = v, after });
+    add({ id: 'pfNoise', label: 'Fluctuations (side-branching)', unit: '', min: 0, max: 0.2, step: 0.01, get: () => m.noise, set: v => m.noise = v, after });
+    // crystals list (columnar) / reroll (equiaxed)
+    const box = document.createElement('div'); box.className = 'body'; box.style.padding = '0';
+    if (ui.pf === 'ds') {
+      box.innerHTML = `<div class="sub">Crystals on the chilled wall</div><div class="row"><label class="hint" for="pfNc">Number</label><select id="pfNc">${[1, 2, 3, 4, 5, 6].map(n => `<option ${n === m.grains.length ? 'selected' : ''}>${n}</option>`).join('')}</select><button class="btn small" type="button" id="pfRand">Random orientations</button></div><div class="seeds" id="pfGrains"></div><p class="hint">θ = angle between the crystal’s &lt;100&gt; direction and the heat-flow direction (vertical), −45° to 45°. Crystals sit side by side from left to right; the seeds are shared equally between them.</p>`;
+      host.appendChild(box);
+      const list = $('pfGrains');
+      m.grains.forEach((th, i) => {
+        const d = document.createElement('label'); d.className = 'seedchip';
+        const col = turbo((th + 45) / 90);
+        d.innerHTML = `<i style="width:12px;height:12px;border-radius:3px;background:rgb(${col.join(',')})"></i>Crystal ${i + 1} θ <input type="number" min="-45" max="45" step="1" value="${th}" class="field num">°`;
+        d.querySelector('input').addEventListener('change', e => { m.grains[i] = Math.max(-45, Math.min(45, Math.round(+e.target.value || 0))); pfBuildControls(); requestReset(); });
+        list.appendChild(d);
+      });
+      $('pfNc').addEventListener('change', e => { const n = +e.target.value; while (m.grains.length < n) m.grains.push(Math.round(Math.random() * 90 - 45)); m.grains.length = n; pfBuildControls(); requestReset(); });
+      $('pfRand').addEventListener('click', () => { m.grains = m.grains.map(() => Math.round(Math.random() * 90 - 45)); m.seed = 1 + Math.floor(Math.random() * 9999); pfBuildControls(); requestReset(); });
+    } else {
+      box.innerHTML = `<button class="btn small" type="button" id="pfReroll">New random positions &amp; orientations</button><p class="hint">Nuclei are placed at random with random &lt;100&gt; orientations.</p>`;
+      host.appendChild(box);
+      $('pfReroll').addEventListener('click', () => { m.seed = 1 + Math.floor(Math.random() * 99999); requestReset(); });
+    }
+    const der = document.createElement('div'); der.className = 'derived'; der.id = 'pfDerived'; host.appendChild(der);
+    pfBuildDerived();
+  }
+  function pfBuildDerived() {
+    if (!$('pfDerived')) return;
+    const sc = pfScales(), m = PFP[ui.pf];
+    let h = `<span>Freezing range ΔT₀ (${fmt(P.C0)} wt%)</span><span>${fmt(sc.dT0, 3)} K</span>
+      <span>Capillary length d₀ = Γ/ΔT₀</span><span>${sig(sc.d0 * 1e9, 3)} nm</span>
+      <span>Interface width W (model)</span><span>${sig(sc.W * 1e9, 3)} nm</span>`;
+    if (ui.pf === 'ds') { const G = sc.dT0 / (m.lT * sc.W), V = m.Vt * sc.W / sc.tau0; h += `<span>Seed (initial primary) spacing</span><span>${fmt(um((DENDRITE.gpu ? PFDETAIL[PFP.detail].ds[0] : 128) * DENDRITE.DX * sc.W / Math.max(m.nSeeds, m.grains.length)), 3)} µm</span>`; h += `<span>Cooling rate Ṫ = G·V</span><span>${sig(G * V, 3)} K/s</span><span>Kurz–Fisher λ₁ estimate</span><span>${fmt(4.3 * Math.pow(S.a.dT0 * S.a.D * S.a.Gam / S.a.k, 0.25) * Math.pow(V, -0.25) * Math.pow(G, -0.5) * 1e6, 3)} µm</span>`; }
+    h += `<span class="full hint">The window is only micrometres wide, so the undercoolings, gradients and cooling rates are those of fine (rapidly solidified) structures, e.g. laser melting, welds, splat or thin-wall castings. Casting dendrites look the same but are 10–100× larger.</span>`;
+    $('pfDerived').innerHTML = h;
+  }
+
+  // ---------- presets ----------
+  PR.list.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; $('preset').appendChild(o); });
+  const loadedOpt = document.createElement('option'); loadedOpt.value = 'custom-loaded'; loadedOpt.textContent = 'Loaded design (from code)'; loadedOpt.hidden = true; $('preset').appendChild(loadedOpt);
+  const TABS = [
+    { name: 'Grain scale', hint: 'Cellular automaton · whole casting, 80 × 50 mm · grains, not individual arms', items: [['ingot', 'Ingot zones'], ['refiner', 'Grain refiner'], ['chillgrowth', 'Grain selection'], ['sx', 'Single-crystal blade'], ['custom', 'Custom mould']] },
+    { name: 'Dendrite scale', hint: 'Phase field · window about 0.1 mm wide · dendrite arms and solute map', items: [['equiaxed', 'Equiaxed dendrites'], ['columnar', 'Columnar dendrites']] },
+  ];
+  const lastIn = {};
+  TABS.forEach((grp, gi) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = grp.name; b.addEventListener('click', () => { if (groupOf() !== gi) loadPreset(PR.list.find(q => q.id === (lastIn[gi] || grp.items[0][0])), false); }); $('modelSeg').appendChild(b); });
+  const groupOf = () => { const id = ui.preset ? ui.preset.id : 'custom'; const gi = TABS.findIndex(g => g.items.some(it => it[0] === id)); return gi < 0 ? 0 : gi; };
+  function syncTabs() {
+    const gi = groupOf(), grp = TABS[gi]; if (ui.preset) lastIn[gi] = ui.preset.id;
+    [...$('modelSeg').children].forEach((b, i) => b.setAttribute('aria-pressed', i === gi));
+    $('modelHint').textContent = grp.hint;
+    const nav = $('scenTabs'); nav.innerHTML = '';
+    for (const [id, label] of grp.items) { const b = document.createElement('button'); b.type = 'button'; b.className = 'tab'; b.dataset.id = id; b.textContent = label; b.setAttribute('aria-current', ui.preset && ui.preset.id === id ? 'true' : 'false'); b.addEventListener('click', () => loadPreset(PR.list.find(q => q.id === id), false)); nav.appendChild(b); }
+  }
+  $('preset').addEventListener('change', e => { const p = PR.list.find(q => q.id === e.target.value); if (p) loadPreset(p, false); });
+  function loadPreset(p, autorun) {
+    pause(); ui.preset = p; PR.apply(p); ui.undo = [];
+    ui.pf = p.pf || null;
+    $('preset').value = p.id; syncTabs(); $('scenTitle').textContent = p.name;
+    updateAbout();
+    $('tryList').innerHTML = p.tryList.map(t => `<li>${t}</li>`).join('');
+    ui.view = p.view; $('viewSel').value = p.view;
+    // refiner level select
+    const lv = Object.entries(REF_LEVELS).find(([k, v]) => Math.abs(v.n - P.ref.n) < 1e-9 && Math.abs(v.dTn - P.ref.dTn) < 1e-9);
+    $('refLevel').value = lv ? lv[0] : 'custom';
+    setViewOptions();
+    ui.view = p.view; $('viewSel').value = p.view;
+    syncAll(); renderSeeds(); pfBuildControls(); legend();
+    doReset();
+    if (autorun) run();
+  }
+
+  function setViewOptions() {
+    const sel = $('viewSel');
+    sel.innerHTML = ui.pf ? '<option value="comp">Composition map (solute)</option><option value="cryst">Crystals (orientation)</option>'
+      : '<option value="grains">Grain structure</option><option value="orient">Crystal orientation</option><option value="origin">Nucleation origin</option><option value="temp">Temperature field</option>';
+    for (const id of ['procCard', 'nucCard', 'ctrlCard', 'editorCard']) $(id).style.display = ui.pf ? 'none' : '';
+    $('pfCard').style.display = ui.pf ? '' : 'none';
+    $('cv').style.display = ui.pf ? 'none' : '';
+    $('pfgl').style.display = ui.pf && DENDRITE.gpu ? '' : 'none';
+    $('pf2d').style.display = ui.pf && !DENDRITE.gpu ? '' : 'none';
+    $('cvwrap').classList.toggle('pf', !!ui.pf);
+    $('pfCardTitle').textContent = ui.pf === 'iso' ? 'Equiaxed dendrite model' : 'Columnar dendrite model';
+  }
+  // ---------- "About this scenario": written from the current settings, so it follows every change ----------
+  function alloyText() { const b = C.ALLOYS[P.alloy]; return P.alloy === 'Ni' ? `Ni-base superalloy (pseudo-binary, ${+P.C0.toFixed(1)} wt% solute)` : `${b.name.split('–')[0]}–${+P.C0.toFixed(1)} wt% ${b.solute}`; }
+  function alloyFacts() { const a = C.alloyProps(P.alloy, P.C0); return `For this alloy: liquidus ${fmt(a.Tl, 4)} °C, freezing ends at ${a.C0 > a.Csmax ? 'the eutectic, ' + fmt(a.Te, 4) : 'the solidus, ' + fmt(a.Ts, 4)} °C (range ${fmt(a.dTf, 3)} K), partition coefficient k = ${a.k}.`; }
+  function processText() {
+    return P.mode === 'casting'
+      ? `Casting mode: poured with ${P.superheat} K superheat, mould at ${P.preheat} °C.`
+      : `Directional mode: G = ${sig(P.G, 3)} K/mm and Ṫ = ${sig(P.Tdot, 3)} K/s, so the isotherms move ${P.dir === 'up' ? 'upward' : 'downward'} at V = Ṫ/G = ${sig(P.Tdot / P.G, 3)} mm/s${P.tilt ? `, tilted by ${P.tilt}°` : ''}.`;
+  }
+  function refinerText() { return P.inocAll ? ` Grain refiner is added to the whole melt (${sig(P.ref.n, 2)} nuclei per mm², active at about ${P.ref.dTn} K undercooling).` : ''; }
+  function updateAbout() {
+    const p = ui.preset, id = p ? p.id : 'loaded', A = alloyText(), b = C.ALLOYS[P.alloy];
+    let t;
+    if (id === 'ingot') t = `An ingot of ${A} in a steel die with an insulated hot top. Three zones can form: fine chill grains on the wall, columnar grains growing against the heat flow, and an equiaxed core where the gradient becomes too low. ${processText()}${refinerText()}${P.stir ? ' The melt is stirred, which adds dendrite fragments.' : ''}`;
+    else if (id === 'refiner') t = `Two sand-mould cavities of ${A} poured at the same time. The left melt is untreated: ${sig(P.nat.n, 2)} native nuclei per mm², which need about ${P.nat.dTn} K undercooling. The right melt is inoculated with a grain refiner${P.alloy === 'Ni' ? '' : ' (for aluminium, Al-5Ti-1B)'}: ${sig(P.ref.n, 2)} nuclei per mm², active at about ${P.ref.dTn} K.${P.inocAll ? ' Refiner is currently added to the whole melt, so both sides are inoculated.' : ''} ${processText()}`;
+    else if (id === 'chillgrowth') t = `Many randomly oriented grains of ${A} nucleate on a water-cooled copper chill and then compete. Grains whose <100> direction is close to the heat-flow direction crowd out the others, building a <100> fibre texture, as in directionally solidified turbine blades. ${processText()}`;
+    else if (id === 'sx') t = `Bridgman casting of a turbine-blade shape in ${A}${P.alloy === 'Ni' ? '' : ' (real single-crystal blades are Ni-base superalloys)'}. Grains nucleate on the chill, compete in the starter block, and the zig-zag grain selector lets only one grain through, so the blade becomes a single crystal with no grain boundaries. ${processText()}`;
+    else if (id === 'equiaxed') { const m = PFP.iso, sc = DENDRITE.scales({ mode: 'iso', alloy: C.alloyProps(P.alloy, P.C0), lam: m.lam }); t = `A small window of ${A} melt, held ${fmt((1 - m.zt0) * sc.dT0, 3)} K below the liquidus and cooling at about ${sig(m.rate * sc.dT0 / sc.tau0, 2)} K/s, with ${m.n} ${m.n === 1 ? 'nucleus' : 'nuclei'} growing as equiaxed dendrites. Primary arms grow along <100>, secondary arms branch at right angles, and tertiary arms can branch from those. The solid takes up only k = ${b.k} of the liquid’s ${b.solute === 'X' ? 'solute' : b.solute} content, so the dendrite cores are solute-poor (blue), the melt is green and the liquid between the arms is enriched (orange–red)${b.k > 0.4 ? '; with k this close to 1, segregation is weak' : ''}.`; }
+    else if (id === 'columnar') { const m = PFP.ds, sc = DENDRITE.scales({ mode: 'ds', alloy: C.alloyProps(P.alloy, P.C0), lam: m.lam }); t = `Seed crystals of ${A} on a chilled wall (bottom) grow upward into undercooled melt, in a fixed window. There ${m.grains.length === 1 ? 'is 1 crystal' : `are ${m.grains.length} crystals`} with <100> at ${m.grains.map(x => x + '°').join(', ')} from the heat-flow direction, sharing ${Math.max(m.nSeeds, m.grains.length)} seeds; G = ${sig(sc.dT0 / (m.lT * sc.W) / 1000, 3)} K/mm and V = ${sig(m.Vt * sc.W / sc.tau0 * 1000, 3)} mm/s. Primary trunks grow along <100>, secondary arms fill the gaps, and well-aligned crystals overgrow tilted ones.`; }
+    else if (id === 'custom') t = `Your own mould, filled with ${A}. Use the Mould editor to draw melt, mould materials, chills, insulation and inoculated melt. ${processText()}${refinerText()}`;
+    else t = `A loaded design, filled with ${A}. ${processText()}${refinerText()}`;
+    if (id !== 'equiaxed' && id !== 'columnar') t += ' ' + alloyFacts();
+    $('about').textContent = t;
+  }
+  // ---------- run loop ----------
+  function doReset() {
+    if (ui.pf) return pfReset();
+    ui.needReset = false; C.reset(); ui.runLogged = false; ui.stats = null;
+    results(false); live(); render(); drawHM(); setStatus();
+  }
+  function requestReset() { updateAbout(); ui.resetAt = performance.now() + (ui.pf ? 300 : 0); ui.needReset = true; if (ui.running) pause(); }
+  const isDone = () => ui.pf ? DENDRITE.st.done : S.done;
+  function run() { if (isDone()) doReset(); ui.running = true; $('runBtn').textContent = 'Pause'; setStatus(); }
+  function pause() { ui.running = false; $('runBtn').textContent = 'Run'; setStatus(); }
+  $('runBtn').addEventListener('click', () => { if (ui.needReset) doReset(); ui.running ? pause() : run(); });
+  $('stepBtn').addEventListener('click', () => { if (ui.needReset) doReset(); pause(); if (ui.pf) { DENDRITE.step(DENDRITE.gpu ? 50 : 5); DENDRITE.render(); pfResults(DENDRITE.st.done); live(); setStatus(); } else { C.advance(30, ui.speed === 'fast' ? 20 : 4); afterAdvance(true); } });
+  $('resetBtn').addEventListener('click', () => { pause(); doReset(); });
+  for (const b of document.querySelectorAll('#speedSeg button')) b.addEventListener('click', () => { ui.speed = b.dataset.speed; syncAll(); });
+  $('viewSel').addEventListener('change', e => { ui.view = e.target.value; legend(); if (ui.pf) { DENDRITE.st.view = ui.view === 'cryst' ? 1 : 0; DENDRITE.render(); } else render(); });
+
+  function setStatus() {
+    const st = $('status');
+    st.className = 'status' + (ui.running ? ' run' : S.done ? ' done' : '');
+    if (ui.pf && DENDRITE.st.lost) { st.className = 'status'; st.textContent = 'Graphics card was reset by the browser. Restarting… if nothing happens, choose a smaller area and press Reset.'; return; }
+    if (ui.pf) { const d = DENDRITE.st, sc = pfScales(); st.className = 'status' + (ui.running ? ' run' : d.done ? ' done' : ''); st.textContent = ui.needReset ? 'Settings changed: press Run' : `${d.done ? 'Finished' : ui.running ? 'Running' : d.steps ? 'Paused' : 'Ready'} · t = ${sig(d.t * sc.tau0 * 1e3, 3)} ms · step ${d.steps}`; return; }
+    const pct = fmt(100 * (1 - S.liquid / Math.max(1, S.metal)), 3);
+    st.textContent = ui.needReset ? 'Settings changed: press Run' : S.metal === 0 ? 'No melt: draw a casting' : S.done ? `Solidified · t = ${fmt(S.t, 3)} s` : `${ui.running ? 'Running' : S.t > 0 ? 'Paused' : 'Ready'} · t = ${fmt(S.t, 3)} s · ${pct} % solid`;
+  }
+  function afterAdvance(force) {
+    render(); live(); setStatus();
+    const now = performance.now();
+    if (force || S.done || now - ui.lastStats > 600) { ui.lastStats = now; results(S.done); drawHM(); }
+    if (S.done && ui.running) pause();
+  }
+  const SPEED = { slow: [1, 8], normal: [5, 22], fast: [1e9, 38] };
+  const PFSPEED = { slow: 12, normal: 60, fast: 400 };
+  let pfSteps = 2;
+  function frame() { try { frameBody(); } catch (e) { console.error(e); pause(); } requestAnimationFrame(frame); }
+  function frameBody() {
+    if (ui.pf) {
+      if (DENDRITE.st.lost) { setStatus(); return; }
+      if (ui.needReset && (ui.pdDrag || performance.now() < (ui.resetAt || 0))) { setStatus(); return; }
+      if (ui.needReset) pfReset();
+      if (ui.running && !DENDRITE.st.done) {
+        // step() waits for the graphics card, so its duration is the real cost: aim for ~24 ms of simulation per frame
+        const now = performance.now(), cap = DENDRITE.gpu ? PFSPEED[ui.speed] : Math.max(1, PFSPEED[ui.speed] / 30 | 0);
+        DENDRITE.step(Math.max(1, Math.round(Math.min(pfSteps, cap))));
+        const el = performance.now() - now;
+        pfSteps = Math.max(1, Math.min(cap, pfSteps * Math.max(0.5, Math.min(1.5, 24 / Math.max(el, 1)))));
+        DENDRITE.render();
+        if (now - ui.lastStats > 1000) { ui.lastStats = now; pfResults(DENDRITE.st.done); live(); legend(); }
+        setStatus();
+        if (DENDRITE.st.done) { pfResults(true); pause(); }
+      }
+      return;
+    }
+    if (ui.needReset && !ui.painting) doReset();
+    else if (ui.needReset && ui.painting) { C.reset(); render(); }
+    if (ui.running && !S.done) { const [steps, budget] = SPEED[ui.speed]; C.advance(budget, steps); afterAdvance(false); }
+    else if (ui.redraw) { render(); }
+    ui.redraw = false;
+  }
+
+  // theme changes -> redraw charts
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawPD(); drawHM(); }); } catch (e) { }
+  new MutationObserver(() => { drawPD(); drawHM(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // ---------- start ----------
+  syncTools(); renderLog();
+  loadPreset(PR.list[0], true);
+  requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>
