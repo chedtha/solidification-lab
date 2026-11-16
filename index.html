@@ -381,6 +381,7 @@ footer a { color: var(--accent); }
       </div>
     </div>
   </details>
+  <p class="hint" id="gaNote" hidden style="padding:12px 4px 0">This page uses Google Analytics to count visits and which scenarios are run. It sets cookies. No names, student IDs or simulation results are collected.</p>
 </footer>
 
 </div>
@@ -393,6 +394,17 @@ footer a { color: var(--accent); }
 </div>
 
 <script>
+// Google Analytics (GA4). Loaded only on the public GitHub Pages copy, so local files and previews are not counted.
+(function () {
+  var ID = 'G-QTN3JYFMPX', on = /(^|\.)github\.io$/.test(location.hostname);
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  window.labTrack = function (name, params) { if (on) { try { gtag('event', name, params || {}); } catch (e) { } } };
+  if (!on) return;
+  var sc = document.createElement('script'); sc.async = true; sc.src = 'https://www.googletagmanager.com/gtag/js?id=' + ID; document.head.appendChild(sc);
+  gtag('js', new Date()); gtag('config', ID);
+  document.addEventListener('DOMContentLoaded', function () { var n = document.getElementById('gaNote'); if (n) n.hidden = false; });
+})();
 // ===== SolidLab core: 2D cellular automaton + heat flow =====
 const CORE = (function () {
   'use strict';
@@ -1755,6 +1767,7 @@ void main(){
   function condText() { return ui.pf ? pfCondText() : procText() + '; ' + nucText(); }
   const plain = html => html.replace(/<[^>]+>/g, '');
   function logRun(chips) {
+    track('run_finish');
     ui.log.push({ scen: ui.preset ? ui.preset.name.split(/[:(]/)[0].trim() : 'Custom', alloy: `${C.ALLOYS[P.alloy].name.split(' (')[0]} ${fmt(P.C0)}%`, cond: condText(), res: chips.map(c => plain(c[1])).join(', ') });
     renderLog();
   }
@@ -2067,6 +2080,7 @@ void main(){
     ui.view = p.view; $('viewSel').value = p.view;
     syncAll(); renderSeeds(); pfBuildControls(); legend();
     doReset();
+    track('scenario_open');
     if (autorun) run();
   }
 
@@ -2105,6 +2119,8 @@ void main(){
     if (id !== 'equiaxed' && id !== 'columnar') t += ' ' + alloyFacts();
     $('about').textContent = t;
   }
+  // usage statistics (no-op unless the page is on its public address)
+  const track = (name) => { try { window.labTrack && window.labTrack(name, { model: ui.pf ? 'dendrite_scale' : 'grain_scale', scenario: ui.preset ? ui.preset.id : 'loaded_design', alloy: P.alloy }); } catch (e) { } };
   // ---------- run loop ----------
   function doReset() {
     if (ui.pf) return pfReset();
@@ -2113,7 +2129,7 @@ void main(){
   }
   function requestReset() { updateAbout(); ui.resetAt = performance.now() + (ui.pf ? 300 : 0); ui.needReset = true; if (ui.running) pause(); }
   const isDone = () => ui.pf ? DENDRITE.st.done : S.done;
-  function run() { if (isDone()) doReset(); ui.running = true; $('runBtn').textContent = 'Pause'; setStatus(); }
+  function run() { if (isDone()) doReset(); if (!(ui.pf ? DENDRITE.st.steps : S.t > 0)) track('run_start'); ui.running = true; $('runBtn').textContent = 'Pause'; setStatus(); }
   function pause() { ui.running = false; $('runBtn').textContent = 'Run'; setStatus(); }
   $('runBtn').addEventListener('click', () => { if (ui.needReset) doReset(); ui.running ? pause() : run(); });
   $('stepBtn').addEventListener('click', () => { if (ui.needReset) doReset(); pause(); if (ui.pf) { DENDRITE.step(DENDRITE.gpu ? 50 : 5); DENDRITE.render(); pfResults(DENDRITE.st.done); live(); setStatus(); } else { C.advance(30, ui.speed === 'fast' ? 20 : 4); afterAdvance(true); } });
